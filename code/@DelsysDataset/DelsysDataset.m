@@ -62,20 +62,25 @@ classdef DelsysDataset < ModelDataset
             load( fullfile( path, 'DelsysJumpData.mat' ), 'delsysJumpData' );
 
             % find the jumps of the specified type
-            % getting the indices in a long 1D array (across and down)
-            selection = find( delsysJumpData.type'==type );
-
-            % extract the data
-            Y = delsysJumpData.(outcome)( selection ); 
-
+            % first, flatten the arrays
+            type1D = reshape( delsysJumpData.type, [], 1 );         
             switch sensor
                 case 'LB'
-                    acc = delsysJumpData.acc(:,:,1);
+                    acc1D = reshape( delsysJumpData.acc(:,:,1), [], 1 );
                 case 'UB'
-                    acc = delsysJumpData.acc(:,:,2);
+                    acc1D = reshape( delsysJumpData.acc(:,:,2), [], 1 );
             end
-            XCell = acc( selection );
-            subjectID = num2str( fix( selection/16 ), 'S%02u' );
+            outcome1D = reshape( delsysJumpData.(outcome), [], 1 );
+            
+            % make the selection
+            selection = (type1D==type);
+
+            % extract the data
+            XCell = acc1D( selection );
+            Y = outcome1D( selection ); 
+
+            % infer the subject IDs knowing that array width
+            subjectID = num2str( fix( selection/size(type,2) ), 'S%02u' );
 
        end
 

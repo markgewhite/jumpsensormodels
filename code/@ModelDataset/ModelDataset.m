@@ -38,7 +38,7 @@ classdef ModelDataset < handle
             self.NumChannels = size( XRaw{1}, 2 );
 
             % store series lengths
-            self.XLen = cellfun( @length, XCell );
+            self.XLen = cellfun( @length, XRaw );
 
             % create smooth functions for the data
             self.X = applyFilter( XRaw );

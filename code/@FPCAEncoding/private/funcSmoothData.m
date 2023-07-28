@@ -18,7 +18,7 @@ function XSmth = funcSmoothData( XCell )
     basisOrder = 4;
     penaltyOrder = 2;
     % in future, assume filtering has done the smoothing already
-    lambda = 1E0; 
+    lambda = 1E-8; 
 
     % set the functional basis
     basisFd = create_bspline_basis( [tSpan(1) tSpan(end)], ...

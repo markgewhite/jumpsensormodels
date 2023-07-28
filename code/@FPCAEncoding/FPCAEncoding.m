@@ -3,6 +3,7 @@ classdef FPCAEncoding < Encoding
 
     properties  
         XSmooth
+        Offsets
     end
 
     methods
@@ -15,9 +16,12 @@ classdef FPCAEncoding < Encoding
 
             XSmth = funcSmoothData( thisDataset.X );
 
+            [XAligned, offsets] = alignCurves( XSmth );
+
             self = self@Encoding( thisDataset );
 
-            self.XSmooth = XSmth;
+            self.XSmooth = XAligned;
+            self.Offsets = offsets;
             %self.Features = self.extractFeatures( X );
 
         end

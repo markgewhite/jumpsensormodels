@@ -5,7 +5,6 @@ classdef FPCAEncoding < Encoding
         XSmooth
         Offsets
         Correlations
-        MSE
     end
 
     methods
@@ -22,9 +21,8 @@ classdef FPCAEncoding < Encoding
             XAligned = XSmth;
             allOffsets = zeros( size(XSmth,2), numAlignments );
             allR = zeros( size(XSmth,2), numAlignments );
-            mse = zeros( numAlignments, 1 );
             for i = 1:numAlignments
-                [XAligned, offsets, allR(:,i), mse(i)] = ...
+                [XAligned, offsets, allR(:,i)] = ...
                             alignCurves( XAligned, Reference = 'Random' );
                 allOffsets(:,i) = offsets - mean(offsets);
             end
@@ -34,7 +32,6 @@ classdef FPCAEncoding < Encoding
             self.XSmooth = XAligned;
             self.Offsets = allOffsets;
             self.Correlations = allR;
-            self.MSE = mse;
             %self.Features = self.extractFeatures( X );
 
         end

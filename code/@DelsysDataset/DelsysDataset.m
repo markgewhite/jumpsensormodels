@@ -73,7 +73,10 @@ classdef DelsysDataset < ModelDataset
             outcome1D = reshape( delsysJumpData.(outcome), [], 1 );
             
             % make the selection
-            selection = (type1D==type);
+            selection = find( type1D==type );
+
+            % remove 190
+            selection(190) = [];
 
             % extract the data
             XCell = acc1D( selection );

@@ -1,23 +1,24 @@
-function XSmth = funcSmoothData( XCell, XLen )
+function XSmth = funcSmoothData( XCell )
     % Convert raw time series data to smooth functions
     arguments
         XCell       cell
-        XLen        double
     end
 
     % pad the series for smoothing
-    X = padData( XCell, max(XLen), 0, ...
+    X = padData( XCell, 0, 0, ...
+                 Longest = true, ...
                  Same = true, ...
                  Location = 'Right' );
 
     % set an arbitrary time span
-    tSpan = linspace( 0, max(XLen)-1 );
+    tSpan = linspace( 0, 1, size(X,1) );
 
     % set the functional data analysis options
     numBasis = fix( length(tSpan)/10 );
-    basisOrder = 2;
-    penaltyOrder = 4;
-    lambda = 1E-10; % assume filtering has done the smoothing already
+    basisOrder = 4;
+    penaltyOrder = 2;
+    % in future, assume filtering has done the smoothing already
+    lambda = 1E0; 
 
     % set the functional basis
     basisFd = create_bspline_basis( [tSpan(1) tSpan(end)], ...

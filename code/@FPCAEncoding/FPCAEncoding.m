@@ -1,7 +1,8 @@
 classdef FPCAEncoding < Encoding
     % Class for features based on functional principal component analysis
 
-    properties
+    properties  
+        XSmooth
     end
 
     methods
@@ -12,11 +13,12 @@ classdef FPCAEncoding < Encoding
                 thisDataset         ModelDataset
             end
 
-            X = functSmoothData( thisDataset.X, thisDataset.XLen );
+            XSmth = funcSmoothData( thisDataset.X );
 
+            self = self@Encoding( thisDataset );
 
-
-            self.Features = self.extractFeatures( thisDataset );
+            self.XSmooth = XSmth;
+            %self.Features = self.extractFeatures( X );
 
         end
 

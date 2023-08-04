@@ -7,6 +7,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         Lambda          % roughness penalty
         MeanFd          % mean curve as a functional data object
         CompFd          % component curves as functional data objects
+        Fitted          % flag whether the model has been fit
     end
 
     methods
@@ -36,6 +37,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             self.BasisOrder = args.BasisOrder;
             self.PenaltyOrder = args.PenaltyOrder;
             self.Lambda = args.Lambda;
+            self.Fitted = false;
 
         end
 
@@ -49,11 +51,14 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 thisDataset         ModelDataset
             end
 
+            % convert to padded array
+            X = padCellToArray( thisDataset.X );
+
             % align the curves
-            XAligned = alignCurves( thisDataset.X, Reference = 'Random' );
+            XAligned = alignCurves( X, Reference = 'Random' );
             
             % create the functional representation
-            XFd = funcSmoothData( XAligned );
+            XFd = self.funcSmoothData( XAligned );
 
             % perform principal components analysis (fit the model)
             pcaStruct = pca_fd( XFd, self.NumFeatures );
@@ -61,6 +66,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             % store the model
             self.MeanFd = pcaStruct.meanfd;
             self.CompFd = pcaStruct.harmfd;
+
+            self.Fitted = true;
 
         end
 
@@ -72,14 +79,29 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 thisDataset         ModelDataset
             end
 
+            if ~self.Fitted
+                eid = 'FPCA-02';
+                msg = 'Model not fitted yet.';
+                throwAsCaller( MException(eid, msg) );
+            end
+
+            % convert to padded array
+            X = padCellToArray( thisDataset.X );
+
+            % align the curves
+            XAligned = alignCurves( X, Reference = 'Random' );
+
             % create the functional representation
-            XFd = funcSmoothData( thisDataset.X );
+            XFd = self.funcSmoothData( XAligned );
 
             % generate principal component scores
             Z = pca_fd_score( XFd, ...
                               self.MeanFd, ...
                               self.CompFd, ...
                               self.NumFeatures );
+
+            % flatten
+            Z = reshape( Z, size(Z,1), [] );
 
         end
 
@@ -88,25 +110,21 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
     methods (Access = private)
 
-        function XFd = funcSmoothData( self, XCell )
+        function XFd = funcSmoothData( self, X )
             % Convert raw time series data to smooth functions
             arguments
                 self            FPCAEncodingStrategy
-                XCell           cell
+                X               double
             end
         
-            % pad the series for smoothing
-            X = padData( XCell, 0, 0, ...
-                         Longest = true, ...
-                         Same = true, ...
-                         Location = 'Right' );
-        
             % set an arbitrary time span
-            tSpan = linspace( 0, 1, size(X,1) );
+            numPts = size(X,1);
+            tSpan = linspace( 0, 1, numPts );
         
             % set the functional basis
+            numBasis = fix( numPts/10 );
             basisFd = create_bspline_basis( [tSpan(1) tSpan(end)], ...
-                                            self.NumBasis, ...
+                                            numBasis, ...
                                             self.BasisOrder );
             
             % and the parameters

@@ -3,9 +3,9 @@ function harmscr = pca_fd_score( fdobj, meanfd, harmfd, nharm, doCentering )
     % This code has been extracted from Ramsay's pca_fd function
     % and modified accordingly
     arguments
-        fdobj           fd
-        meanfd          fd
-        harmfd          fd
+        fdobj           {mustBeA(fdobj, 'fd')}
+        meanfd          {mustBeA(meanfd, 'fd')}
+        harmfd          {mustBeA(harmfd, 'fd')}
         nharm           double
         doCentering     logical = true
     end

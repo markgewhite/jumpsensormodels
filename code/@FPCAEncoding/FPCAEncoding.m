@@ -1,7 +1,7 @@
 classdef FPCAEncoding < Encoding
     % Class for features based on functional principal component analysis
 
-    properties  
+    properties 
         XSmooth
         Offsets
         Correlations
@@ -9,23 +9,15 @@ classdef FPCAEncoding < Encoding
 
     methods
 
-        function self = FPCAEncoding( thisDataset, numAlignments )
+        function self = FPCAEncoding( thisDataset )
             % Initialize the model
             arguments 
                 thisDataset         ModelDataset
-                numAlignments       double
             end
 
-            XSmth = funcSmoothData( thisDataset.X );
+            [XFd, XSmth] = funcSmoothData( thisDataset.X );
 
-            XAligned = XSmth;
-            allOffsets = zeros( size(XSmth,2), numAlignments );
-            allR = zeros( size(XSmth,2), numAlignments );
-            for i = 1:numAlignments
-                [XAligned, offsets, allR(:,i)] = ...
-                            alignCurves( XAligned, Reference = 'Random' );
-                allOffsets(:,i) = offsets - mean(offsets);
-            end
+            XAligned = alignCurves( XSmth, Reference = 'Random' );
 
             self = self@Encoding( thisDataset );
 

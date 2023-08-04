@@ -1,4 +1,4 @@
-function XSmth = funcSmoothData( XCell )
+function [XFd, XSmth] = funcSmoothData( XCell )
     % Convert raw time series data to smooth functions
     arguments
         XCell       cell

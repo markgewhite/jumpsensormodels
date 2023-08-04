@@ -23,8 +23,8 @@ classdef JumpModel < handle
                 args.Path               string = ""
                 args.EncodingType       string ...
                     {mustBeMember( args.EncodingType, ...
-                            {'Discrete', 'Continuous'})}
-                args.EncodingArgs       struct
+                            {'Discrete', 'Continuous'})} = 'Continuous'
+                args.EncodingComponents double = 0
                 args.ModelType          string ...
                     {mustBeMember( args.ModelType, ...
                             {'Linear', 'SVM', 'XGBoost'})} = 'Linear'
@@ -51,10 +51,11 @@ classdef JumpModel < handle
                     self.EncodingStrategy = DiscreteEncodingStrategy;
                 case 'Continuous'
                     self.EncodingStrategy = FPCAEncodingStrategy( ...
-                                    args.EncodingArgs.Continuous.NumComponents );
+                                                args.EncodingComponents );
             end
 
         end
+
 
         function train( self, thisDataset )
             % Train the model
@@ -69,29 +70,25 @@ classdef JumpModel < handle
             % generate the encoding
             Z = self.EncodingStrategy.extractFeatures( thisDataset );
 
-            % prepare model bespoke arguments, if required
-            if isempty(self.Models)
-                modelArgCell = [];
-            else
-                modelArgCell = namedargs2cell( self.ModelArgs );
+            % select the model
+            switch self.ModelType
+                case 'Linear'
+                    modelFcn = @fitrlinear;
+                case 'SVM'
+                    modelFcn = @fitrsvm;
+                case 'XGBoost'
+                    modelFcn = @fitrensemble;
             end
 
-            % fit the model
-            switch self.ModelType
-                case 'LR'
-                    self.Model = fitlm( Z, thisDataset.Y, ...
-                                        modelArgCell{:} );
-                case 'SVM'
-                    self.Model = fitrsvm( Z, thisDataset.Y, ...
-                                        modelArgCell{:} );
-                case 'XGBoost'
-                    self.Model = fitrensemble( Z, thisDataset.Y, ...
-                                        modelArgCell{:} );
+            % fit the model with optional additional arguments
+            if isempty(self.ModelArgs)
+                self.Model = modelFcn( Z, thisDataset.Y );
+            else
+                modelArgCell = namedargs2cell( self.ModelArgs );
+                self.Model = modelFcn( Z, thisDataset.Y, modelArgCell{:} );
             end
 
         end
-
-
 
     end
 

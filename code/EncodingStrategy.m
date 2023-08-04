@@ -7,14 +7,8 @@ classdef EncodingStrategy < handle
 
     methods
         
-        function self = EncodingStrategy( numFeatures )
+        function self = EncodingStrategy
             % Initialize the model
-            arguments 
-                numFeatures         double ...
-                    {mustBeInteger, mustBePositive}
-            end
-
-            self.NumFeatures = numFeatures;
 
         end
 
@@ -23,7 +17,7 @@ classdef EncodingStrategy < handle
 
     methods(Abstract)
 
-        fitModel( self ) 
+        fit( self, thisDataset ) 
         features = extractFeatures(self, X, ZDim);
 
     end

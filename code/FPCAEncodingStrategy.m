@@ -2,6 +2,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     % Class for features based on functional principal component analysis
 
     properties
+        NumComponents   % number of principal components
         BasisOrder      % basis function order
         PenaltyOrder    % roughness penalty order
         Lambda          % roughness penalty
@@ -12,10 +13,11 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
     methods
 
-        function self = FPCAEncodingStrategy( numFeatures, args )
+        function self = FPCAEncodingStrategy( numComponents, args )
             % Initialize the model
             arguments 
-                numFeatures             double
+                numComponents      double ...
+                    {mustBeInteger, mustBePositive}
                 args.BasisOrder         double ...
                     {mustBeInteger, ...
                      mustBeGreaterThanOrEqual(args.BasisOrder, 4)} = 4
@@ -32,8 +34,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 throwAsCaller( MException(eid, msg) );
             end
 
-            self = self@EncodingStrategy( numFeatures );
+            self = self@EncodingStrategy;
 
+            self.NumComponents = numComponents;
             self.BasisOrder = args.BasisOrder;
             self.PenaltyOrder = args.PenaltyOrder;
             self.Lambda = args.Lambda;
@@ -42,7 +45,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         end
 
         
-        function self = fitModel( self, thisDataset )
+        function self = fit( self, thisDataset )
             % Fit the model to the data
             % This requires creating a functional representation
             % which in turn requires curve alignment
@@ -61,7 +64,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             XFd = self.funcSmoothData( XAligned );
 
             % perform principal components analysis (fit the model)
-            pcaStruct = pca_fd( XFd, self.NumFeatures );
+            pcaStruct = pca_fd( XFd, self.NumComponents );
 
             % store the model
             self.MeanFd = pcaStruct.meanfd;

@@ -41,7 +41,9 @@ classdef DelsysDataset < ModelDataset
             self = self@ModelDataset( XRaw, Y, SubjectID, ...
                             superArgsCell{:}, ...
                             Name = "Delsys Data", ...
-                            channelLabels = labels );
+                            channelLabels = labels, ...
+                            SampleFreq = 250, ...
+                            CutoffFreq = 50);
 
             self.Set = set;
             self.JumpType = args.JumpType;
@@ -80,7 +82,11 @@ classdef DelsysDataset < ModelDataset
 
             % extract the data
             XCell = acc1D( selection );
-            Y = outcome1D( selection ); 
+            Y = outcome1D( selection );
+
+            % scale it
+            XCell = cellfun( @(x) x*9.80665, XCell, ...
+                             UniformOutput=false );
 
             % infer the subject IDs knowing that array width
             subjectID = num2str( fix( selection/size(type,2) ), 'S%02u' );

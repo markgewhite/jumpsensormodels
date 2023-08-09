@@ -9,6 +9,10 @@ classdef ModelDataset < handle
         NumChannels     % number of X channels
         Name            % name of the dataset
         ChannelLabels   % names for each of the channels
+        SampleFreq      % time series' sampling frequency
+        CutoffFreq      % cutoff frequency for the filter
+        FilterOrder     % Butterworth filter order
+        FilterType      % filter type - low or high
     end
 
     properties (Dependent = true)
@@ -28,20 +32,32 @@ classdef ModelDataset < handle
                 SubjectID               string
                 args.Name               string
                 args.ChannelLabels      string
+                args.SampleFreq         double {mustBePositive} = 100
+                args.CutoffFreq         double {mustBePositive} = 10
+                args.FilterOrder        double ...
+                    {mustBeInteger, ...
+                     mustBeGreaterThanOrEqual(args.FilterOrder, 3)} = 6
+                args.FilterType         char ...
+                    {mustBeMember(args.FilterType, {'low', 'high'})} = 'low'
             end
 
             % set properties
+            self.X = XRaw;
             self.Y = Y;
             self.SubjectID = SubjectID;
             self.Name = args.Name;
             self.ChannelLabels = args.ChannelLabels;
             self.NumChannels = size( XRaw{1}, 2 );
+            self.SampleFreq = args.SampleFreq;
+            self.CutoffFreq = args.CutoffFreq;
+            self.FilterOrder = args.FilterOrder;
+            self.FilterType = args.FilterType;
 
             % store series lengths
             self.XLen = cellfun( @length, XRaw );
 
-            % create smooth functions for the data
-            self.X = applyFilter( XRaw );
+            % filter the signals
+            self.applyFilter;
 
         end
 
@@ -54,6 +70,26 @@ classdef ModelDataset < handle
                
             NumObs = length( self.Y );
 
+        end
+
+
+        function XFilt = applyFilter( self )
+            % Smooth the raw data using a low-pass filter
+            arguments
+                self       ModelDataset
+            end
+        
+            XFilt = cell( size(self.X) );
+            for i = 1:length(XFilt)
+                XFilt{i} = bwfilt( self.X{i}, ...
+                                   self.FilterOrder, ...
+                                   self.SampleFreq, ...
+                                   self.CutoffFreq, ...
+                                   self.FilterType );
+            end
+
+            self.X = XFilt;
+                        
         end
 
 
@@ -161,13 +197,3 @@ classdef ModelDataset < handle
 end
 
 
-function X = applyFilter( XCell )
-    % Smooth the raw data using a low-pass filter
-    arguments
-        XCell       cell
-    end
-
-    % placeholder for now
-    X = XCell;
-
-end

@@ -17,6 +17,7 @@ classdef ModelDataset < handle
 
     properties (Dependent = true)
         NumObs          % number of observations
+        Acc             % acceleration, selected from X dimensions
     end
 
 
@@ -69,6 +70,17 @@ classdef ModelDataset < handle
             end
                
             NumObs = length( self.Y );
+
+        end
+
+
+        function Acc = get.Acc( self )
+            % Get the acceleration from X
+            arguments
+                self            ModelDataset            
+            end
+               
+            Acc = self.getAcceleration;
 
         end
 
@@ -191,6 +203,13 @@ classdef ModelDataset < handle
             end
 
         end
+
+    end
+
+
+    methods (Abstract)
+
+        getAcceleration( self )
 
     end
 

@@ -37,6 +37,18 @@ classdef SmartphoneDataset < ModelDataset
 
         end
 
+
+        function accCell = getAcceleration( self )
+            % Extract the preferred acceleration component
+            % Dimension 2 (vertical) 
+            arguments
+                self            ModelDataset            
+            end
+               
+            accCell = cellfun( @(x) x(:,2), self.X );
+
+        end
+
     end
 
     methods (Static)

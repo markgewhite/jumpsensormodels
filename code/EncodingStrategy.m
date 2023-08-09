@@ -17,7 +17,6 @@ classdef EncodingStrategy < handle
 
     methods(Abstract)
 
-        fit( self, thisDataset ) 
         features = extractFeatures(self, X, ZDim);
 
     end

@@ -51,8 +51,22 @@ classdef DelsysDataset < ModelDataset
             self.OutcomeVar = args.OutcomeVar;
 
         end
+        
+        
+        function accCell = getAcceleration( self )
+            % Extract the preferred acceleration component
+            % Dimension 1 (approx vertical)
+            arguments
+                self            ModelDataset            
+            end
+               
+            accCell = cellfun( @(x) x(:,1), self.X, ...
+                               UniformOutput = false );
+
+        end
 
     end
+    
 
     methods (Static)
 

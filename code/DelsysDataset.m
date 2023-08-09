@@ -57,7 +57,7 @@ classdef DelsysDataset < ModelDataset
         function [ XCell, Y, subjectID ] = load( type, sensor, outcome )
 
             path = fileparts( which('DelsysDataset.m') );
-            path = [path '/../../data/'];
+            path = [path '/../data/'];
             
             load( fullfile( path, 'DelsysJumpData.mat' ), 'delsysJumpData' );
 

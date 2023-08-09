@@ -30,7 +30,9 @@ classdef SmartphoneDataset < ModelDataset
             self = self@ModelDataset( XRaw, Y, SubjectID, ...
                             superArgsCell{:}, ...
                             Name = "Smartphone Data", ...
-                            channelLabels = labels );
+                            channelLabels = labels, ...
+                            SampleFreq = 128, ...
+                            CutoffFreq = 50 );
 
             self.Set = set;
             self.JumpType = args.JumpType;
@@ -45,7 +47,8 @@ classdef SmartphoneDataset < ModelDataset
                 self            ModelDataset            
             end
                
-            accCell = cellfun( @(x) x(:,2), self.X );
+            accCell = cellfun( @(x) x(:,2), self.X, ...
+                               UniformOutput = false );
 
         end
 
@@ -56,11 +59,12 @@ classdef SmartphoneDataset < ModelDataset
         function [ XCell, Y, subjectID ] = load( type )
 
             path = fileparts( which('SmartphoneDataset.m') );
-            path = [path '/../../data/'];
+            path = [path '/../data/'];
             
-            load( fullfile( path, 'SmartphoneData.mat' ), 'D' );
+            load( fullfile( path, 'SmartphoneData.mat' ), ...
+                            'sensorData', 'forceData' );
 
-            uniqueID = fieldnames( D );
+            uniqueID = fieldnames( sensorData );
 
             % pre-allocate arrays by estimating the number of jumps
             estNumJumps = 3*length(uniqueID);
@@ -72,11 +76,21 @@ classdef SmartphoneDataset < ModelDataset
             % iterate through the unique subject IDs
             for s = 1:length(uniqueID)
                 % extract the subject's data
-                subjectData = D.(uniqueID{s});
+                subjectData = sensorData.(uniqueID{s});
+                perfData = forceData( strcmp(forceData.SBJ, uniqueID{s}), :);
+
                 % get all the jump IDs
                 jumpID = sort(fieldnames( subjectData ));
                 for j = 1:length(jumpID)
                     if contains( jumpID{j}, type )
+
+                        % find the corresponding performance data
+                        peakPower = perfData.n( strcmp(perfData.JUMP, jumpID{j}) );
+                        if isempty( peakPower )
+                            % no performance recorded
+                            continue
+                        end
+
                         % add a jump if it has right type
                         k = k+1;
                         acc = subjectData.(jumpID{j}).acc;
@@ -86,6 +100,8 @@ classdef SmartphoneDataset < ModelDataset
                         gyr = [zeros(padding,3); gyr];
                         XCell{k} = [acc gyr];
                         subjectID(k) = uniqueID{s};
+                        Y(k) = peakPower;
+
                     end
                 end
             end

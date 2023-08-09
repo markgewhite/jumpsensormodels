@@ -57,9 +57,6 @@ classdef ModelDataset < handle
             % store series lengths
             self.XLen = cellfun( @length, XRaw );
 
-            % filter the signals
-            self.applyFilter;
-
         end
 
 
@@ -85,7 +82,7 @@ classdef ModelDataset < handle
         end
 
 
-        function XFilt = applyFilter( self )
+        function XFilt = filterX( self )
             % Smooth the raw data using a low-pass filter
             arguments
                 self       ModelDataset
@@ -99,8 +96,6 @@ classdef ModelDataset < handle
                                    self.CutoffFreq, ...
                                    self.FilterType );
             end
-
-            self.X = XFilt;
                         
         end
 

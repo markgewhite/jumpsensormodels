@@ -232,8 +232,8 @@ W = (P_max - P_min) / fs;
 header = {'h', 'A', 'b', 'C', 'D', 'e', 'F', 'G', 'H', 'i', 'J', 'k', 'l', 'M',...
     'n', 'O', 'p', 'q', 'r', 's', 'u', 'W', 'z', 'f3', 'f2', 'f1'};
 
-stack = [round(100* h), A, b, C, D, e, F, G, H, i, J, k1, l, M, n, O, p, q, r, s, u, W, z, ...
-    f3, f2, f1];
+stack = [round(100* h), A, b, C, D, e, F, G, H, i, J, k1, l, M, ...
+    n, O, p, q, r, s, u, W, z, f3, f2, f1];
 
 % T = array2table(stack, 'VariableNames', header);
 data.a_glob=a;

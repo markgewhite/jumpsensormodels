@@ -1,8 +1,9 @@
-function [u, u_hat, omega] = vmd(signal, alpha, tau, K, DC, init, tol)
+function [u, u_hat, omega] = vmdLegacy(signal, alpha, tau, K, DC, init, tol)
 % Variational Mode Decomposition
 % Authors: Konstantin Dragomiretskiy and Dominique Zosso
 % zosso@math.ucla.edu --- http://www.math.ucla.edu/~zosso
 % Initial release 2013-12-12 (c) 2013
+% Name changed given that MATLAB has its own VMD function, vmd().
 %
 % Input and Parameters:
 % ---------------------
@@ -33,8 +34,8 @@ function [u, u_hat, omega] = vmd(signal, alpha, tau, K, DC, init, tol)
 
 %---------- Preparations
 
-% ensure the signal have an even number of elements
-signal = signal(1:length(signal)-mod(length(signal),2));
+% ensure the signal has a number of elements divisible by 4 (MW AMENDMENT)
+signal = signal(1:length(signal)-mod(length(signal),4));
 
 % Period and sampling frequency of input signal
 save_T = length(signal);
@@ -43,7 +44,7 @@ fs = 1/save_T;
 % extend the signal by mirroring
 T = save_T/2;
 f_mirror(1:T/2) = signal(T/2:-1:1);
-f_mirror(T/2+1:3*T/2) = signal;
+f_mirror(T/2+1:3*T/2) = signal(T/2+1:3*T/2); % MW AMENDMENT !!
 f_mirror(3*T/2+1:2*T) = signal(T:-1:T/2+1);
 f = f_mirror;
 

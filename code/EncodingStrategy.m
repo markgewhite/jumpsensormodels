@@ -7,8 +7,13 @@ classdef EncodingStrategy < handle
 
     methods
         
-        function self = EncodingStrategy
-            % Initialize the model
+        function self = EncodingStrategy( numFeatures )
+            % Initialize the overarching encoding strategy 
+            arguments
+                numFeatures     double {mustBeInteger, mustBePositive}
+            end
+
+            self.NumFeatures = numFeatures;
 
         end
 

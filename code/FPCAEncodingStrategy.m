@@ -2,7 +2,6 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     % Class for features based on functional principal component analysis
 
     properties
-        NumComponents   % number of principal components
         BasisOrder      % basis function order
         PenaltyOrder    % roughness penalty order
         Lambda          % roughness penalty
@@ -34,9 +33,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 throwAsCaller( MException(eid, msg) );
             end
 
-            self = self@EncodingStrategy;
+            self = self@EncodingStrategy( numComponents );
 
-            self.NumComponents = numComponents;
             self.BasisOrder = args.BasisOrder;
             self.PenaltyOrder = args.PenaltyOrder;
             self.Lambda = args.Lambda;
@@ -64,7 +62,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             XFd = self.funcSmoothData( XAligned );
 
             % perform principal components analysis (fit the model)
-            pcaStruct = pca_fd( XFd, self.NumComponents );
+            pcaStruct = pca_fd( XFd, self.NumFeatures );
 
             % store the model
             self.MeanFd = pcaStruct.meanfd;
@@ -101,7 +99,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             Z = pca_fd_score( XFd, ...
                               self.MeanFd, ...
                               self.CompFd, ...
-                              self.NumComponents );
+                              self.NumFeatures );
 
             % flatten
             Z = reshape( Z, size(Z,1), [] );

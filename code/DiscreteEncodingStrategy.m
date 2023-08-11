@@ -37,12 +37,13 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                      mustBeLessThan(args.Tolerance, 1E-2)} = 1E-6 
             end
 
-            self = self@EncodingStrategy;
+            self = self@EncodingStrategy( 26 );
 
             self.SampleFreq = sampleFreq;
             self.Alpha = args.Alpha;
             self.NoiseTolerance = args.NoiseTolerance;
             self.VMDModes = args.VMDModes;
+            self.UseDCMode = args.UseDCMode;
             self.OmegaInit = args.OmegaInit;
             self.Tolerance= args.Tolerance;
 
@@ -66,7 +67,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             for i = 1:numObs
 
                 % check with original code
-                [stack, data] = get_features_GPL_CMJ(acc{i}, fs, 0);
+                %[stack, data] = get_features_GPL_CMJ(acc{i}, fs, 0);
 
                 % find the jump start
                 t0 = findStartIndex( acc{i}, fs );
@@ -87,16 +88,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
                                                  acc{i}, vel, pwr, fs );
 
-                % perform variational mode decomposition
-                [~, ~, omega] = vmd( acc{i}, ...
-                                     self.Alpha, ...
-                                     self.NoiseTolerance, ...
-                                     self.VMDModes, ...
-                                     self.UseDCMode, ...
-                                     self.OmegaInit, ...
-                                     self.Tolerance );
-
-                featuresVMD = omega(end,:) * fs/2;
+                % perform VMD
+                featuresVMD = self.calcVMDFeatures( acc{i}, fs );
 
                 % assemble features vector
                 Z( i, : ) = [round(100*h) featuresJump featuresVMD];
@@ -110,18 +103,52 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
         end
 
+    end
+
+
+    methods (Access=private)
+
+        function features = calcVMDFeatures( self, acc, fs )
+            % Perform variational mode decomposition
+            arguments
+                self            DiscreteEncodingStrategy
+                acc             double {mustBeVector}
+                fs              double
+            end
+        
+            [~, ~, omega] = vmdLegacy( acc, ...
+                                       self.Alpha, ...
+                                       self.NoiseTolerance, ...
+                                       self.VMDModes, ...
+                                       self.UseDCMode, ...
+                                       self.OmegaInit, ...
+                                       self.Tolerance );
+        
+            features = omega(end,:) * fs/2;
+            if isempty( features )
+                features = zeros( 1, self.VMDModes );
+            end
+
+        end
 
     end
 
 end
 
 
-function t0 = findStartIndex( accFilt, fs )
+function t0 = findStartIndex( acc, fs, doFiltering )
     % Find the start of the jump from the acceleration 
     % Code adapted from Beatrice de Lazzari
     arguments
-        accFilt         double {mustBeVector}
+        acc             double {mustBeVector}
         fs              double
+        doFiltering     logical = true
+    end
+
+    if doFiltering
+        accFilt = bwfilt(acc, 6, fs, 50, 'low');
+    else
+        accFilt = acc;
     end
 
     threshold = 8 * std(accFilt(1 : fs/2));

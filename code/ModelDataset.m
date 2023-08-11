@@ -43,7 +43,6 @@ classdef ModelDataset < handle
             end
 
             % set properties
-            self.X = XRaw;
             self.Y = Y;
             self.SubjectID = SubjectID;
             self.Name = args.Name;
@@ -56,6 +55,12 @@ classdef ModelDataset < handle
 
             % store series lengths
             self.XLen = cellfun( @length, XRaw );
+
+            % centre the signals based on first half second
+            idx = fix( self.SampleFreq/2 );
+            self.X = cellfun( @(x) x-mean( x(1:idx,:) ), ...
+                              XRaw, ...
+                              UniformOutput=false );
 
         end
 

@@ -102,10 +102,6 @@ classdef DelsysDataset < ModelDataset
             XCell = cellfun( @(x) -9.80665*x, XCell, ...
                              UniformOutput=false );
 
-            % centre it based on first half second
-            XCell = cellfun( @(x) x-mean( x(1:125,:) ), XCell, ...
-                             UniformOutput=false );
-
             % infer the subject IDs knowing that array width
             subjectID = num2str( fix( selection/size(type,2) ), 'S%02u' );
 

@@ -219,7 +219,7 @@ function [tUB, tBP, tTO] = findOtherTimes( t0, acc, vel, g )
         % From BP to "end", find the first k : a[k] < -g
         foundTO = false;
         for k = tBP:numPts
-            if a(k) <= -g
+            if acc(k) <= -g
                 tTO = k;
                 foundTO = true;
                 break

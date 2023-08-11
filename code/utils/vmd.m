@@ -33,12 +33,15 @@ function [u, u_hat, omega] = vmd(signal, alpha, tau, K, DC, init, tol)
 
 %---------- Preparations
 
+% ensure the signal have an even number of elements
+signal = signal(1:length(signal)-mod(length(signal),2));
+
 % Period and sampling frequency of input signal
 save_T = length(signal);
 fs = 1/save_T;
 
 % extend the signal by mirroring
-T = save_T;
+T = save_T/2;
 f_mirror(1:T/2) = signal(T/2:-1:1);
 f_mirror(T/2+1:3*T/2) = signal;
 f_mirror(3*T/2+1:2*T) = signal(T:-1:T/2+1);

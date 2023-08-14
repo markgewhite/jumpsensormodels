@@ -65,35 +65,39 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             % compute features for one observations at a time
             Z = zeros( numObs, 26 );
             for i = 1:numObs
-
-                % check with original code
-                %[stack, data] = get_features_GPL_CMJ(acc{i}, fs, 0);
-
-                % find the jump start
-                t0 = findStartIndex( acc{i}, fs );
-
-                % compute the velocity time series
-                vel = calcVelCurve( t0, acc{i}, fs );
-
-                % find time UB
-                [tUB, tBP, tTO] = findOtherTimes( t0, acc{i}, vel, g );
-
-                % compute the power time series
-                pwr  = calcPwrCurve( t0, tTO, acc{i}, vel, g );
-
-                % calculate the jump height
-                h = calcJumpHeight( tTO, vel, g );
-
-                % calculate jump features
-                featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
-                                                 acc{i}, vel, pwr, fs );
-
-                % perform VMD
-                featuresVMD = self.calcVMDFeatures( acc{i}, fs );
-
-                % assemble features vector
-                Z( i, : ) = [round(100*h) featuresJump featuresVMD];
-
+                
+                try
+                    % check with original code
+                    [stack, data] = get_features_GPL_CMJ(acc{i}, fs, 0);
+    
+                    % find the jump start
+                    %t0 = findStartIndex( acc{i}, fs );
+    
+                    % compute the velocity time series
+                    %vel = calcVelCurve( t0, acc{i}, fs );
+    
+                    % find time UB
+                    %[tUB, tBP, tTO] = findOtherTimes( t0, acc{i}, vel, g );
+    
+                    % compute the power time series
+                    %pwr  = calcPwrCurve( t0, tTO, acc{i}, vel, g );
+    
+                    % calculate the jump height
+                    %h = calcJumpHeight( tTO, vel, g );
+    
+                    % calculate jump features
+                    %featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
+                    %                                 acc{i}, vel, pwr, fs );
+    
+                    % perform VMD
+                    %featuresVMD = self.calcVMDFeatures( acc{i}, fs );
+    
+                    % assemble features vector
+                    %Z( i, : ) = [round(100*h) featuresJump featuresVMD];
+                catch
+                    disp(['Error: row = ' num2str(i)]);
+                end
+                
             end
 
             % convert into a table

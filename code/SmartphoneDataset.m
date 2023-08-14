@@ -4,6 +4,7 @@ classdef SmartphoneDataset < ModelDataset
     properties
         Set             % training, testing or combined (no purpose here)
         JumpType        % whether 'CMJ' or 'SJ'
+        SignalAligned   % whether the signal has been aligned vertically
     end
 
     methods
@@ -11,13 +12,14 @@ classdef SmartphoneDataset < ModelDataset
         function self = SmartphoneDataset( set, superArgs, args )
             % Load the countermovement jump GRF dataset
             arguments
-                set                string ...
+                set                 string ...
                     {mustBeMember( set, ...
                             {'Training', 'Testing', 'Combined'} )}
                 superArgs.?ModelDataset
-                args.JumpType      string ...
+                args.JumpType       string ...
                     {mustBeMember( args.JumpType , ...
                             {'CMJ', 'SJ'} )} = 'CMJ'
+                args.SignalAligned  logical = true
             end
 
             [ XRaw, Y, SubjectID ] = SmartphoneDataset.load( args.JumpType );
@@ -36,7 +38,13 @@ classdef SmartphoneDataset < ModelDataset
 
             self.Set = set;
             self.JumpType = args.JumpType;
+            self.SignalAligned = args.SignalAligned;
 
+            if args.SignalAligned
+                % align the signal vertically
+                self.align
+            end
+            
         end
 
 
@@ -52,7 +60,22 @@ classdef SmartphoneDataset < ModelDataset
 
         end
 
+
+        function align( self )
+            % Align all the signals vertically
+            arguments
+                self           SmartphoneDataset
+            end
+
+            for i = 1:self.NumObs
+                self.X{i}(:, 1:3) = orientate( self.X{i}, self.SampleFreq );
+            end
+                                              
+
+        end
+        
     end
+
 
     methods (Static)
 
@@ -111,11 +134,46 @@ classdef SmartphoneDataset < ModelDataset
             XCell = XCell( 1:k );
             Y = Y( 1:k );
             
-       end
+        end
 
    end
 
 
 end
+
+
+function acc_glob = orientate(X, fs)
+    % Align signal vertically
+    arguments
+        X                   double {mustBeFloat}
+        fs                  double {mustBePositive}
+    end
+
+    acc = X(:, 1:3);
+    gyr = X(:, 4:6);
+
+    % create the orientation object
+    AHRS = MadgwickAHRS(SamplePeriod = 1/fs, ...
+                        Beta = 0.001);
+    
+    % correct for WRF alignemnt 
+    time = linspace(0, length(acc) / fs, length(acc));
+    quaternion = zeros(length(time), 4);
+    
+    for t = 1 : length(time)
+        AHRS.UpdateIMU(gyr(t,:), acc(t,:));
+        quaternion(t, :) = AHRS.Quaternion;
+    end
+    
+    quaternion_star = quaternConj(quaternion);
+    acc_q = [zeros(length(acc),1), acc];
+    acc_temp = quaternProd(quaternion, acc_q);
+    acc_glob = quaternProd(acc_temp, quaternion_star);
+
+    offset = mean(acc_glob( 1:fs, 2:end ));
+    acc_glob = acc_glob( :, 2:end ) - offset;
+
+end
+
 
 

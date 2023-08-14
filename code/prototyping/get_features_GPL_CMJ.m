@@ -24,7 +24,8 @@ f3 = cf(1); f2 = cf(2); f1 = cf(3);
 
 % t_0
 % 2. Unweighting Phase 
-thr_t0 = 8 * std(a_filt(1 : fs/2));
+%thr_t0 = 8 * std(a_filt(1 : fs/2));
+thr_t0 = 12 * std(a_filt(1 : fs/2));
 for k = 1 : length(a) - 1
     if ( -a_filt(k) > thr_t0 )
         t_0 = k - round(0.03 * fs);
@@ -96,6 +97,7 @@ if flag_negv
             break;
         end
     end
+    t_BP = t_UB+1;
 end
 
 
@@ -129,7 +131,8 @@ P = [zeros(t_0,1); P_tmp];
 % Height
 h = .5 * v(t_TO)^2 / g;
 
-display(['t_0 = ' num2str(t_0) ...
+display(['Threshold = ' num2str(thr_t0) ...
+         '; t_0 = ' num2str(t_0) ...
          '; t_UB = ' num2str(t_UB) ...
          '; t_BP = ' num2str(t_BP) ...
          '; t_TO = ' num2str(t_TO)]);

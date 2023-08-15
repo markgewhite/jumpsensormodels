@@ -3,15 +3,16 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
     properties
         SampleFreq      % sampling frequency of the data
-        Alpha           % VMD balancing parameter for data fidelity
-        NoiseTolerance  % VMD time-step of dual ascent
-        VMDModes        % VMD number of modes, K
-        UseDCMode       % whether VMD uses DC mode
-        OmegaInit       % VMD initialisation mode for omega
-                        %    0 = all omegas start at 0
-                        %    1 = all omegas start uniformly distributed
-                        %    2 = all omegas initialized randomly
-        Tolerance       % VMD tolerance for convergence
+        VMD             % VMD parameters structure
+                        %    Alpha           balancing parameter for data fidelity
+                        %    NoiseTolerance  time-step of dual ascent
+                        %    NumModes        number of modes, K
+                        %    UseDCMode       whether VMD uses DC mode
+                        %    OmegaInit       initialisation mode for omega
+                        %           0 = all omegas start at 0
+                        %           1 = all omegas start uniformly distributed
+                        %           2 = all omegas initialized randomly
+                        %    Tolerance       tolerance for convergence
     end
 
 
@@ -40,12 +41,14 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             self = self@EncodingStrategy( 26 );
 
             self.SampleFreq = sampleFreq;
-            self.Alpha = args.Alpha;
-            self.NoiseTolerance = args.NoiseTolerance;
-            self.VMDModes = args.VMDModes;
-            self.UseDCMode = args.UseDCMode;
-            self.OmegaInit = args.OmegaInit;
-            self.Tolerance= args.Tolerance;
+
+            % set the VMD parameters
+            self.VMD.Alpha = args.Alpha;
+            self.VMD.NoiseTolerance = args.NoiseTolerance;
+            self.VMD.NumModes = args.VMDModes;
+            self.VMD.UseDCMode = args.UseDCMode;
+            self.VMD.OmegaInit = args.OmegaInit;
+            self.VMDTolerance= args.Tolerance;
 
         end
 
@@ -61,6 +64,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             fs = thisDataset.SampleFreq;
             acc = thisDataset.Acc;
             g = 9.80665;
+            onsetArgs = namedargs2cell( self.OnsetParams );
 
             % compute features for one observations at a time
             Z = zeros( numObs, 26 );
@@ -71,29 +75,30 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                     [stack, data] = get_features_GPL_CMJ(acc{i}, fs, 0);
     
                     % find the jump start
-                    %t0 = findStartIndex( acc{i}, fs );
+                    t0 = findStartIndex( acc{i}, fs, onsetArgs{:} );
     
                     % compute the velocity time series
-                    %vel = calcVelCurve( t0, acc{i}, fs );
+                    vel = calcVelCurve( t0, acc{i}, fs );
     
                     % find time UB
-                    %[tUB, tBP, tTO] = findOtherTimes( t0, acc{i}, vel, g );
+                    [tUB, tBP, tTO] = findOtherTimes( t0, acc{i}, vel, g );
     
                     % compute the power time series
-                    %pwr  = calcPwrCurve( t0, tTO, acc{i}, vel, g );
+                    pwr  = calcPwrCurve( t0, tTO, acc{i}, vel, g );
     
                     % calculate the jump height
-                    %h = calcJumpHeight( tTO, vel, g );
+                    h = calcJumpHeight( tTO, vel, g );
     
                     % calculate jump features
-                    %featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
-                    %                                 acc{i}, vel, pwr, fs );
+                    featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
+                                                     acc{i}, vel, pwr, fs );
     
                     % perform VMD
-                    %featuresVMD = self.calcVMDFeatures( acc{i}, fs );
+                    featuresVMD = self.calcVMDFeatures( acc{i}, fs );
     
                     % assemble features vector
-                    %Z( i, : ) = [round(100*h) featuresJump featuresVMD];
+                    Z( i, : ) = [round(100*h) featuresJump featuresVMD];
+                
                 catch
                     disp(['Error: row = ' num2str(i)]);
                 end
@@ -121,16 +126,16 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             end
         
             [~, ~, omega] = vmdLegacy( acc, ...
-                                       self.Alpha, ...
-                                       self.NoiseTolerance, ...
-                                       self.VMDModes, ...
-                                       self.UseDCMode, ...
-                                       self.OmegaInit, ...
-                                       self.Tolerance );
+                                       self.VMD.Alpha, ...
+                                       self.VMD.NoiseTolerance, ...
+                                       self.VMD.NumModes, ...
+                                       self.VMD.UseDCMode, ...
+                                       self.VMD.OmegaInit, ...
+                                       self.VMD.Tolerance );
         
             features = omega(end,:) * fs/2;
             if isempty( features )
-                features = zeros( 1, self.VMDModes );
+                features = zeros( 1, self.VMD.NumModes );
             end
 
         end

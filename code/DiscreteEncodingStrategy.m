@@ -13,6 +13,14 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                         %           1 = all omegas start uniformly distributed
                         %           2 = all omegas initialized randomly
                         %    Tolerance       tolerance for convergence
+        Onset           % jump onset detection parameters structure
+                        %    Filtering              if signal filtering first
+                        %    DetectionMethod        how to detect movement
+                        %    WindowMethod           where to locate window
+                        %    SDDetectionThreshold   SD multiple factor
+                        %    AccDetectionThreshold  absolute value
+                        %    DetectionAdjustment    backwards from detection point
+                        %    WindowAdjustment       backwards from detection
     end
 
 
@@ -33,9 +41,21 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 args.UseDCMode          logical = false
                 args.OmegaInit          double ...
                     {mustBeMember(args.OmegaInit, [0 1 2])} = 0
-                args.Tolerance       double ...
+                args.Tolerance          double ...
                     {mustBePositive, ...
-                     mustBeLessThan(args.Tolerance, 1E-2)} = 1E-6 
+                     mustBeLessThan(args.Tolerance, 1E-2)} = 1E-6
+                % Onset parameters
+                args.Filtering          logical = true
+                args.DetectionMethod        char ...
+                    {mustBeMember( args.DetectionMethod, ...
+                        {'SDMultiple', 'Absolute'})} = 'SDMultiple'
+                args.WindowMethod        char ...
+                    {mustBeMember( args.WindowMethod, ...
+                        {'Fixed', 'Dynamic'})} = 'Fixed'
+                args.SDDetectionThreshold double = 8
+                args.AccDetectionThreshold double = 1.0
+                args.DetectionAdjustment double = 0.03
+                args.WindowAdjustment double = 1.00
             end
 
             self = self@EncodingStrategy( 26 );
@@ -48,7 +68,16 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             self.VMD.NumModes = args.VMDModes;
             self.VMD.UseDCMode = args.UseDCMode;
             self.VMD.OmegaInit = args.OmegaInit;
-            self.VMDTolerance= args.Tolerance;
+            self.VMD.Tolerance= args.Tolerance;
+
+            % set the jump onset parameters
+            self.Onset.Filtering = args.Filtering;
+            self.Onset.DetectionMethod = args.DetectionMethod;
+            self.Onset.WindowMethod = args.WindowMethod;
+            self.Onset.SDDetectionThreshold = args.SDDetectionThreshold;
+            self.Onset.AccDetectionThreshold = args.AccDetectionThreshold;
+            self.Onset.DetectionAdjustment = args.DetectionAdjustment;
+            self.Onset.WindowAdjustment = args.WindowAdjustment;
 
         end
 
@@ -64,7 +93,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             fs = thisDataset.SampleFreq;
             acc = thisDataset.Acc;
             g = 9.80665;
-            onsetArgs = namedargs2cell( self.OnsetParams );
 
             % compute features for one observations at a time
             Z = zeros( numObs, 26 );
@@ -72,10 +100,10 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 
                 try
                     % check with original code
-                    [stack, data] = get_features_GPL_CMJ(acc{i}, fs, 0);
+                    %[stack, data] = get_features_GPL_CMJ(acc{i}, fs, 0);
     
                     % find the jump start
-                    t0 = findStartIndex( acc{i}, fs, onsetArgs{:} );
+                    t0 = findStartTime( acc{i}, fs, self.Onset );
     
                     % compute the velocity time series
                     vel = calcVelCurve( t0, acc{i}, fs );
@@ -94,7 +122,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                                                      acc{i}, vel, pwr, fs );
     
                     % perform VMD
-                    featuresVMD = self.calcVMDFeatures( acc{i}, fs );
+                    featuresVMD = calcVMDFeatures( acc{i}, fs, self.VMD );
     
                     % assemble features vector
                     Z( i, : ) = [round(100*h) featuresJump featuresVMD];
@@ -114,60 +142,95 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
     end
 
+end
 
-    methods (Access=private)
 
-        function features = calcVMDFeatures( self, acc, fs )
-            % Perform variational mode decomposition
-            arguments
-                self            DiscreteEncodingStrategy
-                acc             double {mustBeVector}
-                fs              double
-            end
-        
-            [~, ~, omega] = vmdLegacy( acc, ...
-                                       self.VMD.Alpha, ...
-                                       self.VMD.NoiseTolerance, ...
-                                       self.VMD.NumModes, ...
-                                       self.VMD.UseDCMode, ...
-                                       self.VMD.OmegaInit, ...
-                                       self.VMD.Tolerance );
-        
-            features = omega(end,:) * fs/2;
-            if isempty( features )
-                features = zeros( 1, self.VMD.NumModes );
-            end
+function features = calcVMDFeatures( acc, fs, args )
+    % Perform variational mode decomposition
+    arguments
+        acc             double {mustBeVector}
+        fs              double
+        args            struct            
+    end
 
-        end
+    [~, ~, omega] = vmdLegacy( acc, ...
+                               arg.Alpha, ...
+                               args.NoiseTolerance, ...
+                               args.NumModes, ...
+                               args.UseDCMode, ...
+                               args.OmegaInit, ...
+                               args.Tolerance );
 
+    features = omega(end,:) * fs/2;
+    if isempty( features )
+        features = zeros( 1, args.NumModes );
     end
 
 end
 
 
-function t0 = findStartIndex( acc, fs, doFiltering )
+function t0 = findStartTime( acc, fs, args )
     % Find the start of the jump from the acceleration 
     % Code adapted from Beatrice de Lazzari
     arguments
         acc             double {mustBeVector}
         fs              double
-        doFiltering     logical = true
+        args            struct
     end
 
-    if doFiltering
+    if args.Filtering
         accFilt = bwfilt(acc, 6, fs, 50, 'low');
     else
         accFilt = acc;
     end
 
-    threshold = 8 * std(accFilt(1 : fs/2));
+    % determine the acceleration threshold for detecting the jump
+    switch args.DetectionMethod
 
-    for k = 1 : length(accFilt) - 1
-        if ( -accFilt(k) > threshold )
-            t0 = k - round(0.03 * fs);
-            break
-        end
+        case 'Absolute'
+            % use the absolute deviation 
+            threshold = args.AccDetectionThreshold;
+
+        case 'SDMultiple'
+            % use a multiple of the SD within a window
+            windowWidth = fix( fs/2 );
+            switch args.WindowMethod
+
+                case 'Fixed'
+                    % set the window at the start
+                    window = 1:windowWidth;
+
+                case 'Dynamic'
+                    % locate the window close to the jump
+                    % use a coarse detection threshold
+                    detectIdx = find( abs(accFilt)>args.AccDetectionThreshold, 1 );
+                    if isempty( detectIdx )
+                        eid = 'DES-01';
+                        msg = ['Jump not detected with AccDetectionThreshold = ' ...
+                                num2str(args.AccDetectionThreshold)];
+                        throwAsCaller( MException(eid, msg) );
+                    end
+                    % locate the window back from the detection point
+                    windowStartIdx = max( detectIdx - fix(args.WindowAdjustment*fs), 1 );
+                    % define the window from that point
+                    window = windowStartIdx:(windowStartIdx+windowWidth);
+
+            end
+            % now calculate the threshold using the defined window
+            threshold = args.SDDetectionThreshold*std( accFilt(window) );
+
     end
+
+    % now make the final detection using threshold
+    detectIdx = find( abs(accFilt)>threshold, 1 );
+    if isempty( detectIdx )
+        eid = 'DES-02';
+        msg = ['Jump not detected with threshold = ' num2str(threshold)];
+        throwAsCaller( MException(eid, msg) );
+    end
+
+    % make the backwards adjustment
+    t0 = max( detectIdx - fix(args.DetectionAdjustment*fs), 1 );
 
 end
 

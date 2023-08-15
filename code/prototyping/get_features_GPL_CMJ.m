@@ -1,4 +1,4 @@
-function [stack, data] = get_features_GPL_CMJ(a, fs, plt)
+function [stack, data, times] = get_features_GPL_CMJ(a, fs, plt)
 g = 9.80665;
 
 a_filt = bwfilt(a, 6, fs, 50, 'low');
@@ -24,8 +24,7 @@ f3 = cf(1); f2 = cf(2); f1 = cf(3);
 
 % t_0
 % 2. Unweighting Phase 
-%thr_t0 = 8 * std(a_filt(1 : fs/2));
-thr_t0 = 12 * std(a_filt(1 : fs/2));
+thr_t0 = 8 * std(a_filt(1 : fs/2));
 for k = 1 : length(a) - 1
     if ( -a_filt(k) > thr_t0 )
         t_0 = k - round(0.03 * fs);
@@ -137,6 +136,8 @@ display(['Threshold = ' num2str(thr_t0) ...
          '; t_BP = ' num2str(t_BP) ...
          '; t_TO = ' num2str(t_TO)]);
 
+
+times = [t_0, t_UB, t_BP, t_TO];
 
 %% Jump Features
 % -- A -- %

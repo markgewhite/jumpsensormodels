@@ -100,37 +100,36 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 
                 try
                     % check with original code
-                    %[stack, data] = get_features_GPL_CMJ(acc{i}, fs, 0);
-    
-                    % find the jump start
-                    t0 = findStartTime( acc{i}, fs, self.Onset );
-    
-                    % compute the velocity time series
-                    vel = calcVelCurve( t0, acc{i}, fs );
-    
-                    % find time UB
-                    [tUB, tBP, tTO] = findOtherTimes( t0, acc{i}, vel, g );
-    
-                    % compute the power time series
-                    pwr  = calcPwrCurve( t0, tTO, acc{i}, vel, g );
-    
-                    % calculate the jump height
-                    h = calcJumpHeight( tTO, vel, g );
-    
-                    % calculate jump features
-                    featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
-                                                     acc{i}, vel, pwr, fs );
-    
-                    % perform VMD
-                    featuresVMD = calcVMDFeatures( acc{i}, fs, self.VMD );
-    
-                    % assemble features vector
-                    Z( i, : ) = [round(100*h) featuresJump featuresVMD];
-                
+                    [stack, data, times] = get_features_GPL_CMJ(acc{i}, fs, 0);
                 catch
-                    disp(['Error: row = ' num2str(i)]);
+                    disp(['Legacy code error: row = ' num2str(i)]);
                 end
-                
+
+                % find the jump start
+                t0 = findStartTime( acc{i}, fs, self.Onset );
+
+                % compute the velocity time series
+                vel = calcVelCurve( t0, acc{i}, fs );
+
+                % find time UB
+                [tUB, tBP, tTO] = findOtherTimes( acc{i}, vel, fs, g );
+
+                % compute the power time series
+                pwr  = calcPwrCurve( t0, tTO, acc{i}, vel, g );
+
+                % calculate the jump height
+                h = calcJumpHeight( tTO, vel, g );
+
+                % calculate jump features
+                featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
+                                                 acc{i}, vel, pwr, fs );
+
+                % perform VMD
+                featuresVMD = calcVMDFeatures( acc{i}, fs, self.VMD );
+
+                % assemble features vector
+                Z( i, : ) = [round(100*h) featuresJump featuresVMD];
+                                
             end
 
             % convert into a table
@@ -154,7 +153,7 @@ function features = calcVMDFeatures( acc, fs, args )
     end
 
     [~, ~, omega] = vmdLegacy( acc, ...
-                               arg.Alpha, ...
+                               args.Alpha, ...
                                args.NoiseTolerance, ...
                                args.NumModes, ...
                                args.UseDCMode, ...
@@ -230,7 +229,7 @@ function t0 = findStartTime( acc, fs, args )
     end
 
     % make the backwards adjustment
-    t0 = max( detectIdx - fix(args.DetectionAdjustment*fs), 1 );
+    t0 = max( detectIdx - round(args.DetectionAdjustment*fs), 1 );
 
 end
 
@@ -254,84 +253,51 @@ function v = calcVelCurve( t0, acc, fs )
 end
 
 
-function [tUB, tBP, tTO] = findOtherTimes( t0, acc, vel, g )
+function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
     % Find the remaining time indices
     % Code adapted from Beatrice de Lazzari
     arguments
-        t0            double {mustBeInteger, mustBePositive}
         acc           double {mustBeVector}
         vel           double {mustBeVector}
+        fs            double
         g             double
     end
 
-    [~, stop_smpl] = min(vel);
-    [~, vM] = max(vel( 1:stop_smpl ));
-    [~, vm] = min(vel( t0:vM ));
+    % find the first minimum in velocity (peak in negative vel)
+    [~, tUB, ~, p] = findpeaks( -vel, NPeaks = 1, ...
+                          MinPeakHeight=0, MinPeakProminence=0.2);
 
-    tUB = vm + t0 - 1;
-    
-    if isempty(tUB)
-        if 2*stop_smpl <length(vel)
-            [~, tUB] = min(vel( t0:2*stop_smpl ));
-            tUB = tUB+t0-1;
-        else
-            [~, tUB] = min(vel( t0:end-stop_smpl ));
-            tUB = tUB+t0-1;
-        end
-    end 
-    
-    isNegVel = (round(vel(vM),2) == vel(t0));
-    
-    if isNegVel
+    % find the next maximum in velocity after the minimum
+    [~, velMaxIdx, ~, p] = findpeaks( vel(tUB:end), NPeaks = 1, ...
+                          MinPeakProminence=0.2);
+    velMaxIdx = velMaxIdx + tUB - 1;
 
-        [~, tMaxA] = max(acc);
-        [~, tMinA] = min(acc(1:tMaxA));
-        
-        for i = tMinA:tMaxA
-            if acc(i)>0
-                tUB = i;
-                break;
-            end
-        end
-
-    end
+    % find the last prominent acceleration peak before to the vel peak
+    [~, accMaxIdx] = findpeaks( acc(1:velMaxIdx), ...
+                                MinPeakHeight=2, MinPeakProminence=0.2 );
+    accMaxIdx = accMaxIdx(end);
 
     % Find the first sample such that v > 0
-    numPts = length(acc);
-    for k = tUB:numPts
-        if vel(k) > 0.001
-            tBP = k;
-            break
-        end
-    end
-    
-    if isNegVel
-        for i = tMaxA:numPts
-            if acc(i) < -g
-                tBP = tMaxA;
-                tTO = i;
-                break;
-            end
-        end
-    
+    tBP = find( vel(tUB:end)>0, 1 );
+    if isempty( tBP )
+        % velocity never becomes positive
+        % instead, use the first acceleration peak
+        tBP = accMaxIdx;
     else
-        % From BP to "end", find the first k : a[k] < -g
-        foundTO = false;
-        for k = tBP:numPts
-            if acc(k) <= -g
-                tTO = k;
-                foundTO = true;
-                break
-            end
-        end
-        
-        if ~foundTO
-           [~, vm] = max( vel );
-           [~, am] = min( acc( vm:vm+30 ) );
-           tTO = vm + am - 1;
-        end
+        tBP = tBP + tUB -1;
     end
 
+    % set the take-off index where acc falls below -1g
+    takeoffIdx = find( acc(accMaxIdx:end)<-g, 1 );
+    if isempty( takeoffIdx )
+        % use an alternative method
+        startIdx = findpeaks( vel, NPeaks=1 );
+        endIdx = startIdx + fix(0.0235*fs);
+        [~, accMinIdxTO] = min( acc(startIdx:endIdx) );
+        tTO = startIdx + accMinIdxTO - 1;
+    else
+        tTO = takeoffIdx + accMaxIdx - 1;
+    end
 
 end
 

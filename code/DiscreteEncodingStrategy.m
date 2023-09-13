@@ -82,11 +82,12 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
         end
 
 
-        function Z = extractFeatures( self, thisDataset )
+        function Z = extractFeatures( self, thisDataset, checkTimePts )
             % Compute the features 
             arguments
                 self                DiscreteEncodingStrategy
                 thisDataset         ModelDataset
+                checkTimePts        logical = false
             end
 
             numObs = thisDataset.NumObs;
@@ -98,6 +99,16 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             Z = zeros( numObs, 26 );
             for i = 1:numObs
                 
+                % setup plot, if required
+                if checkTimePts
+                    if mod(i-1, 30)==0
+                        fig = figure;
+                        tiling = tiledlayout( fig, 5, 6, ...
+                                              TileSpacing='compact' );
+                    end
+                    ax = nexttile( tiling );
+                end
+
                 try
                     % check with original code
                     [stack, data, times] = get_features_GPL_CMJ(acc{i}, fs, 0);
@@ -129,7 +140,13 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
                 % assemble features vector
                 Z( i, : ) = [round(100*h) featuresJump featuresVMD];
-                                
+
+                % plot the timing points, if required
+                if checkTimePts
+                    plotTimingPts( ax, acc{i}, times, [t0, tUB, tBP, tTO] );
+                    text( ax, 0.1, 0.8, num2str(i), units = 'normalized' );
+                end
+
             end
 
             % convert into a table

@@ -13,6 +13,8 @@ classdef ModelDataset < handle
         CutoffFreq      % cutoff frequency for the filter
         FilterOrder     % Butterworth filter order
         FilterType      % filter type - low or high
+        VMDParams       % VMD parameters structure
+        VMD             % VMD features
     end
 
     properties (Dependent = true)
@@ -40,6 +42,20 @@ classdef ModelDataset < handle
                      mustBeGreaterThanOrEqual(args.FilterOrder, 3)} = 6
                 args.FilterType         char ...
                     {mustBeMember(args.FilterType, {'low', 'high'})} = 'low'
+             % VMD parameters
+                args.Alpha              double ...
+                    {mustBePositive} = 100
+                args.NoiseTolerance     double ...
+                    {mustBeGreaterThanOrEqual(args.NoiseTolerance,0)} = 0
+                args.VMDModes           double ...
+                    {mustBeInteger, mustBePositive} = 3
+                args.UseDCMode          logical = false
+                args.OmegaInit          double ...
+                    {mustBeMember(args.OmegaInit, [0 1 2])} = 0
+                args.Tolerance          double ...
+                    {mustBePositive, ...
+                     mustBeLessThan(args.Tolerance, 1E-2)} = 1E-6
+ 
             end
 
             % set properties
@@ -53,6 +69,14 @@ classdef ModelDataset < handle
             self.FilterOrder = args.FilterOrder;
             self.FilterType = args.FilterType;
 
+            % set the VMD parameters
+            self.VMDParams.Alpha = args.Alpha;
+            self.VMDParams.NoiseTolerance = args.NoiseTolerance;
+            self.VMDParams.NumModes = args.VMDModes;
+            self.VMDParams.UseDCMode = args.UseDCMode;
+            self.VMDParams.OmegaInit = args.OmegaInit;
+            self.VMDParams.Tolerance= args.Tolerance;
+
             % store series lengths
             self.XLen = cellfun( @length, XRaw );
 
@@ -61,6 +85,9 @@ classdef ModelDataset < handle
             self.X = cellfun( @(x) x-mean( x(1:idx,:) ), ...
                               XRaw, ...
                               UniformOutput=false );
+
+            % calculate VMD features
+            self.VMD = self.calcVMD;
 
         end
 
@@ -202,6 +229,30 @@ classdef ModelDataset < handle
         
             end
 
+        end
+
+
+
+        function vmd = calcVMD( self )
+            % Perform variational mode decomposition
+            arguments
+                self            ModelDataset                      
+            end
+
+            acc = self.Acc;
+            vmd = zeros( self.NumObs, self.VMDParams.NumModes );
+            for i = 1:self.NumObs
+                [~, ~, omega] = vmdLegacy( acc{i}, ...
+                                           self.VMDParams.Alpha, ...
+                                           self.VMDParams.NoiseTolerance, ...
+                                           self.VMDParams.NumModes, ...
+                                           self.VMDParams.UseDCMode, ...
+                                           self.VMDParams.OmegaInit, ...
+                                           self.VMDParams.Tolerance );
+        
+                vmd(i,:) = omega(end,:) * self.SampleFreq/2;
+            end
+        
         end
 
     end

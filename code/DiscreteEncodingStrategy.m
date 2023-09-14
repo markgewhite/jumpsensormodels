@@ -33,20 +33,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             arguments
                 sampleFreq              double ...
                     {mustBePositive}
-                % VMD parameters
-                args.Alpha              double ...
-                    {mustBePositive} = 100
-                args.NoiseTolerance     double ...
-                    {mustBeGreaterThanOrEqual(args.NoiseTolerance,0)} = 0
-                args.VMDModes           double ...
-                    {mustBeInteger, mustBePositive} = 3
-                args.UseDCMode          logical = false
-                args.OmegaInit          double ...
-                    {mustBeMember(args.OmegaInit, [0 1 2])} = 0
-                args.Tolerance          double ...
-                    {mustBePositive, ...
-                     mustBeLessThan(args.Tolerance, 1E-2)} = 1E-6
-                % Onset parameters
                 args.Filtering          logical = true
                 args.DetectionMethod        char ...
                     {mustBeMember( args.DetectionMethod, ...
@@ -65,14 +51,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             self = self@EncodingStrategy( 26 );
 
             self.SampleFreq = sampleFreq;
-
-            % set the VMD parameters
-            self.VMD.Alpha = args.Alpha;
-            self.VMD.NoiseTolerance = args.NoiseTolerance;
-            self.VMD.NumModes = args.VMDModes;
-            self.VMD.UseDCMode = args.UseDCMode;
-            self.VMD.OmegaInit = args.OmegaInit;
-            self.VMD.Tolerance= args.Tolerance;
 
             % set the jump onset parameters
             self.Onset.Filtering = args.Filtering;
@@ -100,6 +78,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             numObs = thisDataset.NumObs;
             fs = thisDataset.SampleFreq;
             acc = thisDataset.Acc;
+            vmd = thisDataset.VMD;
             g = 9.80665;
 
             % compute features for one observations at a time
@@ -147,7 +126,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                                                  acc{i}, vel, pwr, fs );
 
                 % perform VMD
-                featuresVMD = calcVMDFeatures( acc{i}, fs, self.VMD );
+                featuresVMD = vmd( i, : );
 
                 % assemble features vector
                 Z( i, : ) = [round(100*h) featuresJump featuresVMD];
@@ -167,30 +146,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
         end
 
-    end
-
-end
-
-
-function features = calcVMDFeatures( acc, fs, args )
-    % Perform variational mode decomposition
-    arguments
-        acc             double {mustBeVector}
-        fs              double
-        args            struct            
-    end
-
-    [~, ~, omega] = vmdLegacy( acc, ...
-                               args.Alpha, ...
-                               args.NoiseTolerance, ...
-                               args.NumModes, ...
-                               args.UseDCMode, ...
-                               args.OmegaInit, ...
-                               args.Tolerance );
-
-    features = omega(end,:) * fs/2;
-    if isempty( features )
-        features = zeros( 1, args.NumModes );
     end
 
 end

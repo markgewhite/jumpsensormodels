@@ -21,6 +21,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                         %    AccDetectionThreshold  absolute value
                         %    DetectionAdjustment    backwards from detection point
                         %    WindowAdjustment       backwards from detection
+        PlotTimePts     % flag whether to plot timing points when generating features
+        LegacyCode      % flag whether to run legacy code
     end
 
 
@@ -55,7 +57,9 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 args.SDDetectionThreshold double = 8
                 args.AccDetectionThreshold double = 1.0
                 args.DetectionAdjustment double = 0.03
-                args.WindowAdjustment double = 1.00
+                args.WindowAdjustment    double = 1.00
+                args.PlotTimePts         logical = false
+                args.LegacyCode          logical = false
             end
 
             self = self@EncodingStrategy( 26 );
@@ -79,15 +83,18 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             self.Onset.DetectionAdjustment = args.DetectionAdjustment;
             self.Onset.WindowAdjustment = args.WindowAdjustment;
 
+            % operation
+            self.PlotTimePts = args.PlotTimePts;
+            self.LegacyCode = args.LegacyCode;
+
         end
 
 
-        function Z = extractFeatures( self, thisDataset, checkTimePts )
+        function Z = extractFeatures( self, thisDataset )
             % Compute the features 
             arguments
                 self                DiscreteEncodingStrategy
                 thisDataset         ModelDataset
-                checkTimePts        logical = false
             end
 
             numObs = thisDataset.NumObs;
@@ -100,7 +107,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             for i = 1:numObs
                 
                 % setup plot, if required
-                if checkTimePts
+                if self.PlotTimePts
                     if mod(i-1, 30)==0
                         fig = figure;
                         tiling = tiledlayout( fig, 5, 6, ...
@@ -109,11 +116,15 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                     ax = nexttile( tiling );
                 end
 
-                try
-                    % check with original code
-                    [stack, data, times] = get_features_GPL_CMJ(acc{i}, fs, 0);
-                catch
-                    disp(['Legacy code error: row = ' num2str(i)]);
+                if self.LegacyCode
+                    try
+                        % check with original code
+                        [stack, data, times] = get_features_GPL_CMJ(acc{i}, fs, 0);
+                    catch
+                        disp(['Legacy code error: row = ' num2str(i)]);
+                    end
+                else
+                    times = NaN;
                 end
 
                 % find the jump start
@@ -142,8 +153,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 Z( i, : ) = [round(100*h) featuresJump featuresVMD];
 
                 % plot the timing points, if required
-                if checkTimePts
-                    plotTimingPts( ax, acc{i}, times, [t0, tUB, tBP, tTO] );
+                if self.PlotTimePts
+                    plotTimingPts( ax, acc{i}, [t0, tUB, tBP, tTO], times );
                     text( ax, 0.1, 0.8, num2str(i), units = 'normalized' );
                 end
 
@@ -289,7 +300,7 @@ function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
                           MinPeakProminence=0.2);
     velMaxIdx = velMaxIdx + tUB - 1;
 
-    % find the last prominent acceleration peak before to the vel peak
+    % find the last prominent acceleration peak before the vel peak
     [~, accMaxIdx] = findpeaks( acc(1:velMaxIdx), ...
                                 MinPeakHeight=2, MinPeakProminence=0.2 );
     accMaxIdx = accMaxIdx(end);
@@ -301,7 +312,7 @@ function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
         % instead, use the first acceleration peak
         tBP = accMaxIdx;
     else
-        tBP = tBP + tUB -1;
+        tBP = tBP + tUB - 1;
     end
 
     % set the take-off index where acc falls below -1g

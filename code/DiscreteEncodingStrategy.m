@@ -2,7 +2,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
     % Class for features based on discrete features
 
     properties
-        SampleFreq      % sampling frequency of the data
         VMD             % VMD parameters structure
                         %    Alpha           balancing parameter for data fidelity
                         %    NoiseTolerance  time-step of dual ascent
@@ -28,11 +27,9 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
     methods
 
-        function self = DiscreteEncodingStrategy( sampleFreq, args )
+        function self = DiscreteEncodingStrategy( args )
             % Initialize the model
             arguments
-                sampleFreq              double ...
-                    {mustBePositive}
                 args.Filtering          logical = true
                 args.DetectionMethod        char ...
                     {mustBeMember( args.DetectionMethod, ...
@@ -49,8 +46,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             end
 
             self = self@EncodingStrategy( 26 );
-
-            self.SampleFreq = sampleFreq;
 
             % set the jump onset parameters
             self.Onset.Filtering = args.Filtering;

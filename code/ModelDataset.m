@@ -140,12 +140,15 @@ classdef ModelDataset < handle
                 idx         logical 
             end
         
-            thisSubset = self;
+            % create a copy of self without invoking the constructor
+            byteStream = getByteStreamFromArray( self );
+            thisSubset = getArrayFromByteStream( byteStream );
         
             thisSubset.X = self.X( idx );
             thisSubset.XLen = self.XLen( idx );
             thisSubset.Y = self.Y( idx );
             thisSubset.SubjectID = self.SubjectID( idx );
+            thisSubset.VMD = self.VMD( idx, : );
     
         end
 
@@ -175,7 +178,7 @@ classdef ModelDataset < handle
                 throwAsCaller( MException(eid,msg) );
             end
         
-            unit = self.S;
+            unit = self.SubjectID;
             uniqueUnit = unique( unit );
         
             if isfield( args, 'Holdout' )

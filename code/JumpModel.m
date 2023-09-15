@@ -11,6 +11,7 @@ classdef JumpModel < handle
         ModelType           % type of model
         Model               % fitted model
         ModelArgs           % specific arguments for the model
+        Timing              % struct holding execution times
     end
 
     methods
@@ -63,9 +64,6 @@ classdef JumpModel < handle
                 self            JumpModel
                 thisDataset     ModelDataset
             end
-
-            % fit the encoding model
-            self.EncodingStrategy.fit( thisDataset );
 
             % generate the encoding
             Z = self.EncodingStrategy.extractFeatures( thisDataset );

@@ -74,10 +74,11 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             fs = thisDataset.SampleFreq;
             acc = thisDataset.Acc;
             vmd = thisDataset.VMD;
+            numNodes = thisDataset.VMDParams.NumModes;
             g = 9.80665;
 
             % compute features for one observations at a time
-            Z = zeros( numObs, 26 );
+            Z = zeros( numObs, 23 + numNodes );
             for i = 1:numObs
                 
                 % setup plot, if required
@@ -136,7 +137,12 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
             % convert into a table
             varNames = {'h', 'A', 'b', 'C', 'D', 'e', 'F', 'G', 'H', 'i', 'J', 'k', 'l', 'M',...
-                        'n', 'O', 'p', 'q', 'r', 's', 'u', 'W', 'z', 'f3', 'f2', 'f1'};
+                        'n', 'O', 'p', 'q', 'r', 's', 'u', 'W', 'z'};
+
+            vmdVars = arrayfun(@(n) ['f' num2str(n)], numNodes:-1:1, ...
+                               'UniformOutput', false);
+            varNames = [varNames, vmdVars];
+            
             Z = array2table( Z, 'VariableNames', varNames);
 
         end

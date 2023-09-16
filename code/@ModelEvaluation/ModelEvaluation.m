@@ -113,16 +113,6 @@ classdef ModelEvaluation < handle
 
         % methods
 
-        self = arrangeComponents( self )
-
-        XC = calcCVComponents( self )
-
-        conserveMemory( self, level, closeFigs )
-
-        initPCAModel( self, setup )
-
-        initAEModel( self, setup )
-
         save( self )
 
         saveReport( self )

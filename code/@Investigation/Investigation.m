@@ -105,8 +105,6 @@ classdef Investigation < handle
 
         % class methods
 
-        conserveMemory( self, level )
-
         evaluateAll( self )
 
         datasets = getDatasets( self, args )
@@ -122,8 +120,6 @@ classdef Investigation < handle
         run( self )
 
         save( self )
-
-        fig = saveDataPlot( self, args )
 
         report = saveReport( self )
 

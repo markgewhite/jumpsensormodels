@@ -23,7 +23,7 @@ function trainModels( self, modelSetup )
             case 'Holdout'
                 % set the training and holdout data sets
                 thisTrnSet = self.TrainingDataset;
-                thisValSet = self.TestingDataset;
+                thisValSet = self.ValidationDataset;
             case 'KFold'
                 % set the kth partitions
                 thisTrnSet = self.TrainingDataset.partition( self.Partitions(:,k) );

@@ -5,9 +5,6 @@ function trainModelsInParallel( self, modelSetup )
         modelSetup          struct
     end
 
-    % turn of plots for parallel run
-    modelSetup.args.ShowPlots = false;
-
     % prepare the bespoke arguments
     try
         argsModel = namedargs2cell( modelSetup.args );
@@ -28,7 +25,7 @@ function trainModelsInParallel( self, modelSetup )
             case 'Holdout'
                 % set the training and holdout data sets
                 thisTrnSet{k} = self.TrainingDataset;
-                thisValSet{k} = self.TestingDataset;
+                thisValSet{k} = self.ValidationDataset;
             case 'KFold'
                 % set the kth partitions
                 thisTrnSet{k} = self.TrainingDataset.partition( self.Partitions(:,k) );
@@ -68,7 +65,7 @@ function trainModelsInParallel( self, modelSetup )
                     ': Training the model in parallel ...']);
         end
         tStart = tic;
-        models{k} = models{k}.train( thisTrnSet{k} );
+        models{k}.train( thisTrnSet{k} );
         models{k}.Timing.Training.TotalTime = toc(tStart);
 
         % evaluate the model
@@ -77,38 +74,12 @@ function trainModelsInParallel( self, modelSetup )
                     ': Evaluating the model in parallel ...']);
         end
         tStart = tic;
-        models{k} = models{k}.evaluate( thisTrnSet{k}, thisValSet{k} );
-        models{k}.Timing.Testing.TotalTime = toc(tStart);
+        models{k}.evaluate( thisTrnSet{k}, thisValSet{k} );
+        models{k}.Timing.Validation.TotalTime = toc(tStart);
 
     end
 
     % store all models
     self.Models = models;
-
-    % generate and save plots if required
-    for k = 1:numModels
-        if self.Models{k}.ShowPlots
-            % generate the model plots
-            self.Models{k}.showAllPlots;
-            % save the plots
-            self.Models{k}.save;
-        end
-    end
-
-    % find the optimal arrangement of model components
-    if self.NumModels > 1
-        if self.Verbose
-            disp('Aligning components...');
-        end
-        self = self.arrangeComponents;
-    end
-
-    % average the latent components across the models
-    self.CVComponents = self.calcCVComponents;
-
-    % average the auxiliary model coefficients
-    self.CVAuxMetrics.AuxModelBeta = calcCVNestedParameter( ...
-                                        self.Models, {'AuxModel', 'Beta'} );
-
 
 end

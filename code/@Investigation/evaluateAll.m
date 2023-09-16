@@ -13,8 +13,9 @@ function evaluateAll( self )
         thisEvaluation = self.Evaluations{ idxC{:} };
 
         for k = 1:thisEvaluation.NumModels
-            thisEvaluation.Models{k} = thisEvaluation.Models{k}.evaluate( thisEvaluation.TrainingDataset, ...
-                                               thisEvaluation.TestingDataset );
+            thisEvaluation.Models{k} = ...
+                thisEvaluation.Models{k}.evaluate( thisEvaluation.TrainingDataset, ...
+                                                   thisEvaluation.ValidationDataset );
         end
 
         thisEvaluation.evaluateModels( 'Training' );

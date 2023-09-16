@@ -6,7 +6,7 @@ classdef ModelEvaluation < handle
         Path                % folder for storing results
         BespokeSetup        % structure recording the bespoke setup
         TrainingDataset     % training dataset object
-        TestingDataset      % testing dataset object
+        ValidationDataset   % validation dataset object
         KFolds              % number of partitions
         KFoldRepeats        % number of k-fold repetitions
         Partitions          % training dataset k-fold partitions

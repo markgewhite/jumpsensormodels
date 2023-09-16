@@ -10,6 +10,8 @@ setup.model.args.EncodingType = 'Discrete';
 % --- evaluation setup ---
 setup.eval.args.CVType = 'KFold';
 setup.eval.args.KFolds = 2;
+setup.eval.args.KFoldRepeats = 5;
+setup.eval.args.InParallel = true;
 
 % first investigation
 name = 'test';

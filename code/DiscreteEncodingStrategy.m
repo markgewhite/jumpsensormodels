@@ -2,16 +2,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
     % Class for features based on discrete features
 
     properties
-        VMD             % VMD parameters structure
-                        %    Alpha           balancing parameter for data fidelity
-                        %    NoiseTolerance  time-step of dual ascent
-                        %    NumModes        number of modes, K
-                        %    UseDCMode       whether VMD uses DC mode
-                        %    OmegaInit       initialisation mode for omega
-                        %           0 = all omegas start at 0
-                        %           1 = all omegas start uniformly distributed
-                        %           2 = all omegas initialized randomly
-                        %    Tolerance       tolerance for convergence
         Onset           % jump onset detection parameters structure
                         %    Filtering              if signal filtering first
                         %    DetectionMethod        how to detect movement
@@ -45,7 +35,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 args.LegacyCode          logical = false
             end
 
-            self = self@EncodingStrategy( 26 );
+            self = self@EncodingStrategy;
 
             % set the jump onset parameters
             self.Onset.Filtering = args.Filtering;

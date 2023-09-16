@@ -1,19 +1,10 @@
 classdef EncodingStrategy < handle
     % Super class for feature encoding algorithms
 
-    properties
-        NumFeatures     % number of features
-    end
-
     methods
         
-        function self = EncodingStrategy( numFeatures )
+        function self = EncodingStrategy
             % Initialize the overarching encoding strategy 
-            arguments
-                numFeatures     double {mustBeInteger, mustBePositive}
-            end
-
-            self.NumFeatures = numFeatures;
 
         end
 

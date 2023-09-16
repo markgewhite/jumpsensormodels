@@ -2,6 +2,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     % Class for features based on functional principal component analysis
 
     properties
+        NumComponents   % number of principal components
         BasisOrder      % basis function order
         PenaltyOrder    % roughness penalty order
         Lambda          % roughness penalty
@@ -12,11 +13,11 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
     methods
 
-        function self = FPCAEncodingStrategy( numComponents, args )
+        function self = FPCAEncodingStrategy( args )
             % Initialize the model
             arguments 
-                numComponents      double ...
-                    {mustBeInteger, mustBePositive}
+                args.NumComponents      double ...
+                    {mustBeInteger, mustBePositive} = 3
                 args.BasisOrder         double ...
                     {mustBeInteger, ...
                      mustBeGreaterThanOrEqual(args.BasisOrder, 4)} = 4
@@ -33,42 +34,13 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 throwAsCaller( MException(eid, msg) );
             end
 
-            self = self@EncodingStrategy( numComponents );
+            self = self@EncodingStrategy;
 
+            self.NumComponents = args.NumComponents;
             self.BasisOrder = args.BasisOrder;
             self.PenaltyOrder = args.PenaltyOrder;
             self.Lambda = args.Lambda;
             self.Fitted = false;
-
-        end
-
-        
-        function self = fit( self, thisDataset )
-            % Fit the model to the data
-            % This requires creating a functional representation
-            % which in turn requires curve alignment
-            arguments
-                self                FPCAEncodingStrategy
-                thisDataset         ModelDataset
-            end
-
-            % convert to padded array
-            X = padCellToArray( thisDataset.X );
-
-            % align the curves
-            XAligned = alignCurves( X, Reference = 'Random' );
-            
-            % create the functional representation
-            XFd = self.funcSmoothData( XAligned );
-
-            % perform principal components analysis (fit the model)
-            pcaStruct = pca_fd( XFd, self.NumFeatures );
-
-            % store the model
-            self.MeanFd = pcaStruct.meanfd;
-            self.CompFd = pcaStruct.harmfd;
-
-            self.Fitted = true;
 
         end
 
@@ -80,11 +52,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 thisDataset         ModelDataset
             end
 
-            if ~self.Fitted
-                eid = 'FPCA-02';
-                msg = 'Model not fitted yet.';
-                throwAsCaller( MException(eid, msg) );
-            end
+            % fit the principal components
+            self.fit( thisDataset );
 
             % convert to padded array
             X = padCellToArray( thisDataset.X );
@@ -99,7 +68,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             Z = pca_fd_score( XFd, ...
                               self.MeanFd, ...
                               self.CompFd, ...
-                              self.NumFeatures );
+                              self.NumComponents );
 
             % flatten
             Z = reshape( Z, size(Z,1), [] );
@@ -134,6 +103,36 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             % create the smooth functions from the original data
             XFd = smooth_basis( tSpan, X, FdParams );
         
+        end
+
+        
+        function self = fit( self, thisDataset )
+            % Fit the model to the data
+            % This requires creating a functional representation
+            % which in turn requires curve alignment
+            arguments
+                self                FPCAEncodingStrategy
+                thisDataset         ModelDataset
+            end
+
+            % convert to padded array
+            X = padCellToArray( thisDataset.X );
+
+            % align the curves
+            XAligned = alignCurves( X, Reference = 'Random' );
+            
+            % create the functional representation
+            XFd = self.funcSmoothData( XAligned );
+
+            % perform principal components analysis (fit the model)
+            pcaStruct = pca_fd( XFd, self.NumComponents );
+
+            % store the model
+            self.MeanFd = pcaStruct.meanfd;
+            self.CompFd = pcaStruct.harmfd;
+
+            self.Fitted = true;
+
         end
 
     end

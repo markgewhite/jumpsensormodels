@@ -14,6 +14,15 @@ classdef ModelDataset < handle
         FilterOrder     % Butterworth filter order
         FilterType      % filter type - low or high
         VMDParams       % VMD parameters structure
+                        %    Alpha           balancing parameter for data fidelity
+                        %    NoiseTolerance  time-step of dual ascent
+                        %    NumModes        number of modes, K
+                        %    UseDCMode       whether VMD uses DC mode
+                        %    OmegaInit       initialisation mode for omega
+                        %           0 = all omegas start at 0
+                        %           1 = all omegas start uniformly distributed
+                        %           2 = all omegas initialized randomly
+                        %    Tolerance       tolerance for convergence
         VMD             % VMD features
     end
 

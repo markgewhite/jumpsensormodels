@@ -28,7 +28,8 @@ classdef JumpModel < handle
                 args.EncodingType       string ...
                     {mustBeMember( args.EncodingType, ...
                             {'Discrete', 'Continuous'})} = 'Continuous'
-                args.EncodingComponents double = 0
+                args.DiscreteEncodingArgs   struct
+                args.ContinuousEncodingArgs struct
                 args.ModelType          string ...
                     {mustBeMember( args.ModelType, ...
                             {'Linear', 'SVM', 'XGBoost'})} = 'Linear'
@@ -52,10 +53,23 @@ classdef JumpModel < handle
             % initialise
             switch args.EncodingType
                 case 'Discrete'
-                    self.EncodingStrategy = DiscreteEncodingStrategy;
+
+                    if isfield( args, 'DiscreteEncodingArgs' )
+                        encodingArgs = namedargs2cell( args.DiscreteEncodingArgs );
+                        self.EncodingStrategy = DiscreteEncodingStrategy( encodingArgs{:} );
+                    else
+                        self.EncodingStrategy = DiscreteEncodingStrategy;
+                    end
+
                 case 'Continuous'
-                    self.EncodingStrategy = FPCAEncodingStrategy( ...
-                                                args.EncodingComponents );
+
+                    if isfield( args, 'ContinuousEncodingArgs' )
+                        encodingArgs = namedargs2cell( args.ContinuousEncodingArgs );
+                        self.EncodingStrategy = FPCAEncodingStrategy( encodingArgs{:} );
+                    else
+                        self.EncodingStrategy = FPCAEncodingStrategy;
+                    end
+                    
             end
 
         end

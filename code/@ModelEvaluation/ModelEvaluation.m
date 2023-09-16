@@ -15,13 +15,8 @@ classdef ModelEvaluation < handle
         NumModels           % number of models
         Models              % trained model objects
         LossFcns            % array of loss function objects
-        CVComponents        % cross-validated latent components
-        CVAuxMetrics        % structure of auxiliary model/network metrics
         CVLoss              % structure of cross-validated losses
-        CVCorrelations      % structure of cross-validated losses
         CVTiming            % structure of cross-validated execution times
-        ComponentOrder      % optimal arrangement of model components
-        ComponentDiffRMSE   % overall difference between sub-models
         RandomSeed          % for reproducibility
         RandomSeedResets    % whether to reset the seed for each model
         InParallel          % whether to run the evaluation in parallel
@@ -99,7 +94,7 @@ classdef ModelEvaluation < handle
 
             % evaluate the trained model
             self.evaluateModels( 'Training' );
-            self.evaluateModels( 'Testing' );           
+            self.evaluateModels( 'Validation' );           
 
             self.CVTiming.Training.Mean.TotalEvaluationTime = toc(startTime);
             
@@ -108,11 +103,9 @@ classdef ModelEvaluation < handle
                     num2str(self.CVTiming.Training.Mean.TotalEvaluationTime)]);
     
                 disp('Training evaluation:');
-                reportResult( self.CVLoss.Training.Mean, ...
-                              self.CVCorrelations.Training.Mean );
-                disp('Testing evaluation:');
-                reportResult( self.CVLoss.Testing.Mean, ...
-                              self.CVCorrelations.Testing.Mean );
+                reportResult( self.CVLoss.Training.Mean );
+                disp('Validation evaluation:');
+                reportResult( self.CVLoss.Validation.Mean );
             end
 
         end

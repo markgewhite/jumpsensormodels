@@ -12,6 +12,9 @@ classdef JumpModel < handle
         Model               % fitted model
         ModelArgs           % specific arguments for the model
         Timing              % struct holding execution times
+        Loss                % loss
+        Y                   % ground truth structure Y values
+        YHat                % predictions structure YHat values
     end
 
     methods
@@ -88,12 +91,50 @@ classdef JumpModel < handle
 
         end
 
+
+        function self = evaluate( self, thisTrnSet, thisValSet )
+            % Evaluate the model with a specified dataset
+            arguments
+                self            JumpModel
+                thisTrnSet      ModelDataset
+                thisValSet      ModelDataset
+            end
+        
+            [self.Loss.Training, self.Y.Training, self.YHat.Training] = ...
+                self.evaluateSet( self, thisTrnSet );
+        
+            if thisValSet.NumObs > 0
+                [self.Loss.Validation, self.Y.Validation, self.YHat.Validation] = ...
+                    self.evaluateSet( self, thisValSet );   
+            end
+    
+        end
+
     end
 
     
     methods (Static)
 
-        [eval, pred, cor] = evaluateSet( thisModel, thisDataset )
+        function [eval, Y, YHat] = evaluateSet( self, thisDataset )
+            % Evaluate the model with a specified dataset
+            arguments
+                self            JumpModel
+                thisDataset     ModelDataset
+            end
+        
+            % generate the encoding
+            Z = self.EncodingStrategy.extractFeatures( thisDataset );
+
+            % get the ground truth
+            Y = thisDataset.Y;
+
+            % generate the predictions
+            YHat = predict( self.Model, Z );
+        
+            % compute loss
+            eval.RMSE = sqrt(mean((YHat - Y).^2));
+
+        end
 
     end
 

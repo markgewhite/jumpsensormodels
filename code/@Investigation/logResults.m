@@ -6,9 +6,9 @@ function self = logResults( self, idxC, allocation )
         allocation      double
     end
 
-    fields = {'TrainingResults', 'TestingResults'};
-    sets = {'Training', 'Testing'};
-    categories = {'CVLoss', 'CVCorrelations', 'CVTiming'};
+    fields = {'TrainingResults', 'ValidationResults'};
+    sets = {'Training', 'Validation'};
+    categories = {'CVLoss', 'CVTiming'};
 
     thisEvaluation = self.Evaluations{ idxC{:} };
 

@@ -48,7 +48,6 @@ function self = run( self )
         end
 
         % save the evaluations
-        thisEvaluation.conserveMemory( self.MemorySaving );
         thisEvaluation.save;
 
         % record results

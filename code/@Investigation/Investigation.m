@@ -16,9 +16,8 @@ classdef Investigation < handle
         IsComplete          % whether the evaluations were completed successfully
         ErrorMessages       % record of error messages returned
         TrainingResults     % structure summarising results from evaluations
-        TestingResults      % structure summarising results from evaluations
+        ValidationResults   % structure summarising results from evaluations
         CatchErrors         % flag indicating if try-catch should be used
-        MemorySaving        % memory saving level
     end
 
 
@@ -26,7 +25,7 @@ classdef Investigation < handle
 
         function self = Investigation( name, path, parameters, ...
                                        searchValues, setup, ...
-                                       catchErrors, memorySaving )
+                                       catchErrors )
             % Construct an investigation comprised of evaluations
             arguments
                 name            string
@@ -35,15 +34,12 @@ classdef Investigation < handle
                 searchValues
                 setup           struct
                 catchErrors     logical = false
-                memorySaving    double {mustBeInteger, ...
-                                mustBeInRange( memorySaving, 0, 3 )} = 1
             end
 
             % initialize properties
             self.Name = name;
             self.Path = path;
             self.CatchErrors = catchErrors;
-            self.MemorySaving = memorySaving;
 
             % create a folder for this investigation
             setup.model.args.path = fullfile( path, name );
@@ -57,9 +53,9 @@ classdef Investigation < handle
             self.TrainingResults.Mean = [];
             self.TrainingResults.SD = [];
             self.TrainingResults.Models = [];
-            self.TestingResults.Mean = [];
-            self.TestingResults.SD = [];
-            self.TestingResults.Models = [];
+            self.ValidationResults.Mean = [];
+            self.ValidationResults.SD = [];
+            self.ValidationResults.Models = [];
 
             % setup the grid search
             self.NumParameters = length( parameters );

@@ -40,11 +40,6 @@ function trainModels( self, modelSetup )
                                            argsModel{:}, ...
                                            Name = foldName );
 
-        if self.RandomSeedResets && ~isempty( self.RandomSeed )
-            % reset the random seed for the model
-            rng( self.RandomSeed );
-        end
-
         % train the model and time it
         if self.Verbose
             disp('Training the model...');
@@ -59,31 +54,8 @@ function trainModels( self, modelSetup )
         end
         tStart = tic;
         self.Models{k}.evaluate( thisTrnSet, thisValSet );
-        self.Models{k}.Timing.Testing.TotalTime = toc(tStart);
-
-        if self.Models{k}.ShowPlots
-            % generate the model plots
-            self.Models{k}.showAllPlots;
-            % save the plots
-            self.Models{k}.save;
-        end
+        self.Models{k}.Timing.Validation.TotalTime = toc(tStart);
         
     end
-
-    % find the optimal arrangement of model components
-    if self.NumModels > 1
-        if self.Verbose
-            disp('Aligning components...');
-        end
-        self = self.arrangeComponents;
-    end
-
-    % average the latent components across the models
-    self.CVComponents = self.calcCVComponents;
-
-    % average the auxiliary model coefficients
-    self.CVAuxMetrics.AuxModelBeta = calcCVNestedParameter( ...
-                                        self.Models, {'AuxModel', 'Beta'} );
-
 
 end

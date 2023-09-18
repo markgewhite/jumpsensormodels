@@ -13,6 +13,7 @@ classdef ModelDataset < handle
         CutoffFreq      % cutoff frequency for the filter
         FilterOrder     % Butterworth filter order
         FilterType      % filter type - low or high
+        Proportion      % proportion of the datasets full size
         VMDParams       % VMD parameters structure
                         %    Alpha           balancing parameter for data fidelity
                         %    NoiseTolerance  time-step of dual ascent
@@ -51,6 +52,8 @@ classdef ModelDataset < handle
                      mustBeGreaterThanOrEqual(args.FilterOrder, 3)} = 6
                 args.FilterType         char ...
                     {mustBeMember(args.FilterType, {'low', 'high'})} = 'low'
+                args.Proportion         double ...
+                    {mustBeInRange( args.Proportion, 0, 1 )} = 1.0
              % VMD parameters
                 args.Alpha              double ...
                     {mustBePositive} = 100
@@ -77,6 +80,7 @@ classdef ModelDataset < handle
             self.CutoffFreq = args.CutoffFreq;
             self.FilterOrder = args.FilterOrder;
             self.FilterType = args.FilterType;
+            self.Proportion = args.Proportion;
 
             % set the VMD parameters
             self.VMDParams.Alpha = args.Alpha;
@@ -103,11 +107,15 @@ classdef ModelDataset < handle
                 % previous run's data does match - re-use it
                 self.VMD = vmd;
             else
-                % previous run's data does not match - recalculate VMD features
+                % previous run's data does not match - calculate VMD features
                 self.VMD = self.calcVMD;
                 self.saveVMD;
             end
 
+            % truncate the data if a subsample is required
+            if args.Proportion~=1
+                self.truncate( args.Proportion );
+            end
 
         end
 
@@ -170,6 +178,29 @@ classdef ModelDataset < handle
             thisSubset.SubjectID = self.SubjectID( idx );
             thisSubset.VMD = self.VMD( idx, : );
     
+        end
+
+
+        function truncate( self, proportion )
+            % Truncate the dataset by taking a random smaller proportion
+            arguments
+                self        ModelDataset
+                proportion  double {mustBeInRange(proportion, 0, 1)}
+            end
+
+            unit = self.SubjectID;
+            uniqueUnit = unique( unit );
+
+            numUnits = length( uniqueUnit );
+            subset = randsample( numUnits, ceil(proportion*numUnits) );
+            selection = ismember( unit, uniqueUnit( subset ));
+
+            self.X = self.X( selection );
+            self.XLen = self.XLen( selection );
+            self.Y = self.Y( selection );
+            self.SubjectID = self.SubjectID( selection );
+            self.VMD = self.VMD( selection, : );
+
         end
 
 

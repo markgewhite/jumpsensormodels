@@ -19,12 +19,11 @@ path = fileparts( which('code/runAnalysis.m') );
 path = [path '/../results/'];
 
 parameters = [ "model.args.EncodingType", ...
-               ];
+               "data.args.Proportion" ];
 values = {{'Discrete', 'Continuous'}, ...
-          };
+          0.1:0.1:1.0 };
 
-
-myInvestigation = Investigation( name, path, parameters, values, setup );
+myInvestigation = ParallelInvestigation( name, path, parameters, values, setup );
 
 myInvestigation.run;
 

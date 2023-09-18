@@ -94,9 +94,20 @@ classdef ModelDataset < handle
             self.X = cellfun( @(x) x-mean( x(1:idx,:) ), ...
                               XRaw, ...
                               UniformOutput=false );
+            
 
-            % calculate VMD features
-            self.VMD = self.calcVMD;
+            % load VMD features 
+            [vmd, vmdParams] = self.loadVMD;
+
+            if isequal( vmdParams, self.VMDParams )
+                % previous run's data does match - re-use it
+                self.VMD = vmd;
+            else
+                % previous run's data does not match - recalculate VMD features
+                self.VMD = self.calcVMD;
+                self.saveVMD;
+            end
+
 
         end
 
@@ -266,6 +277,46 @@ classdef ModelDataset < handle
             end
         
         end
+
+
+        function [vmd, params] = loadVMD( self )
+            % Load variational mode decomposition data from previous run
+            arguments
+                self            ModelDataset                      
+            end
+
+            path = fileparts( which('ModelDataset.m') );
+            path = [path '/../data/'];
+
+            filename = [ char(strrep(self.Name, ' ', '')) 'VMDData.mat'];
+            
+            try
+                load( fullfile( path, filename ), 'vmd', 'params' );
+            catch
+                vmd = [];
+                params = [];
+            end
+
+        end
+
+
+        function saveVMD( self )
+            % Save variational mode decomposition data
+            arguments
+                self            ModelDataset                      
+            end
+
+            path = fileparts( which('ModelDataset.m') );
+            path = [path '/../data/'];
+
+            filename = [ char(strrep(self.Name, ' ', '')) 'VMDData.mat'];
+            vmd = self.VMD;
+            params = self.VMDParams;
+
+            save( fullfile( path, filename ), 'vmd', 'params' );
+
+        end
+
 
     end
 

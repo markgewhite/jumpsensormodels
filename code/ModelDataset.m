@@ -8,6 +8,7 @@ classdef ModelDataset < handle
         XLen            % lengths of each series
         NumChannels     % number of X channels
         Name            % name of the dataset
+        Instance        % instance counter
         ChannelLabels   % names for each of the channels
         SampleFreq      % time series' sampling frequency
         CutoffFreq      % cutoff frequency for the filter
@@ -44,6 +45,7 @@ classdef ModelDataset < handle
                 Y                       double
                 SubjectID               string
                 args.Name               string
+                args.Instance           double {mustBePositive, mustBeInteger} = 1
                 args.ChannelLabels      string
                 args.SampleFreq         double {mustBePositive} = 100
                 args.CutoffFreq         double {mustBePositive} = 10
@@ -74,6 +76,7 @@ classdef ModelDataset < handle
             self.Y = Y;
             self.SubjectID = SubjectID;
             self.Name = args.Name;
+            self.Instance = args.Instance;
             self.ChannelLabels = args.ChannelLabels;
             self.NumChannels = size( XRaw{1}, 2 );
             self.SampleFreq = args.SampleFreq;

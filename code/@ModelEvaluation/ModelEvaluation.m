@@ -42,7 +42,7 @@ classdef ModelEvaluation < handle
                         {mustBeInteger, mustBePositive} = 1
                 args.HasIdenticalPartitions logical = false
                 args.RandomSeed         double ...
-                        {mustBeInteger, mustBePositive} = 1234
+                        {mustBeInteger, mustBePositive} = []
                 args.RandomSeedResets   logical = false;
                 args.InParallel         logical = false;
                 args.Verbose            logical = true;

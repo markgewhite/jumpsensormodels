@@ -1,4 +1,5 @@
 *.asv
 data/*.mat
 data/*.zip
+results/*
 

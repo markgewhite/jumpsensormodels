@@ -79,27 +79,31 @@ classdef DelsysDataset < ModelDataset
 
             % find the jumps of the specified type
             % first, flatten the arrays
-            type1D = reshape( delsysJumpData.type, [], 1 );         
+            jumpType = reshape( delsysJumpData.type, [], 1 );         
             switch sensor
                 case 'LB'
-                    acc1D = reshape( delsysJumpData.acc(:,:,1), [], 1 );
+                    acc = reshape( delsysJumpData.acc(:,:,1), [], 1 );
                 case 'UB'
-                    acc1D = reshape( delsysJumpData.acc(:,:,2), [], 1 );
+                    acc = reshape( delsysJumpData.acc(:,:,2), [], 1 );
             end
-            outcome1D = reshape( delsysJumpData.(outcome), [], 1 );
+            outcome = reshape( delsysJumpData.(outcome), [], 1 );
             
             % make the selection
-            selection = find( type1D==type );
+            selection = find( jumpType==type );
 
             % remove 190
             selection(190) = [];
 
             % extract the data
-            XCell = acc1D( selection );
-            Y = outcome1D( selection );
+            XCell = acc( selection );
+            Y = outcome( selection );
+
+            % convert to the resultant
+            XCell = cellfun( @(x) sqrt(sum(x.^2, 2)), XCell, ...
+                             UniformOutput=false );
 
             % scale it
-            XCell = cellfun( @(x) -9.80665*x, XCell, ...
+            XCell = cellfun( @(x) -9.812*x, XCell, ...
                              UniformOutput=false );
 
             % infer the subject IDs knowing that array width

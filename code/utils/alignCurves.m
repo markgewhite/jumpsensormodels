@@ -1,10 +1,11 @@
-function [ alignedX, offsets, correlations ] = alignCurves( X, args )
+function [ alignedX, refZ, offsets, correlations ] = alignCurves( X, args )
     % Align X series using cross correlation with a reference signal
     arguments
         X               double
         args.Reference  string ...
                 {mustBeMember( args.Reference, ...
-                    {'First', 'Random'})} = 'Random'
+                    {'First', 'Random', 'Specified'})} = 'Random'
+        args.RefSignal  double
     end
 
     [sigLength, numSignals, numDim] = size( X );
@@ -23,6 +24,9 @@ function [ alignedX, offsets, correlations ] = alignCurves( X, args )
         case 'Random'
             refIdx = randi(numSignals);
             refZ = Z( :, refIdx );
+        case 'Specified'
+            refIdx = 0;
+            refZ = args.RefSignal;
    end
 
     % initialize

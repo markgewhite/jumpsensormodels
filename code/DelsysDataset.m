@@ -103,7 +103,7 @@ classdef DelsysDataset < ModelDataset
                              UniformOutput=false );
 
             % scale it
-            XCell = cellfun( @(x) -9.812*x, XCell, ...
+            XCell = cellfun( @(x) 9.812*x, XCell, ...
                              UniformOutput=false );
 
             % infer the subject IDs knowing that array width

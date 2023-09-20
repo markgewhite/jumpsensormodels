@@ -13,7 +13,7 @@ setup.model.args.EncodingType = 'Continuous';
 setup.eval.args.CVType = 'KFold';
 setup.eval.args.KFolds = 2;
 setup.eval.args.KFoldRepeats = 5;
-setup.eval.args.InParallel = false;
+setup.eval.args.InParallel = true;
 
 % first investigation
 name = 'test';
@@ -39,9 +39,9 @@ switch testID
 
     case 2
         parameters = "model.args.ContinuousEncodingArgs.NumComponents";
-        values = {1:5};
+        values = {1:15};
         
-        myInvestigation = ParallelInvestigation( name, path, parameters, values, setup );
+        myInvestigation = Investigation( name, path, parameters, values, setup );
         
         myInvestigation.run;
         

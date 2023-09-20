@@ -8,6 +8,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         Lambda          % roughness penalty
         MeanFd          % mean curve as a functional data object
         CompFd          % component curves as functional data objects
+        AlignmentSignal % reference signal for alignment
         Fitted          % flag whether the model has been fit
     end
 
@@ -59,7 +60,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             X = padCellToArray( thisDataset.X );
 
             % align the curves
-            XAligned = alignCurves( X, Reference = 'Random' );
+            XAligned = alignCurves( X, ...
+                                    Reference = 'Specified', ...
+                                    RefSignal = self.AlignmentSignal );
 
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );
@@ -119,7 +122,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             X = padCellToArray( thisDataset.X );
 
             % align the curves
-            XAligned = alignCurves( X, Reference = 'Random' );
+            [XAligned, self.AlignmentSignal] = alignCurves( X, Reference = 'Random' );
             
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );

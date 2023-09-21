@@ -98,6 +98,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                         [stack, data, times] = get_features_GPL_CMJ(acc{i}, fs, 0);
                     catch
                         disp(['Legacy code error: row = ' num2str(i)]);
+                        times = NaN;
                     end
                 else
                     times = NaN;
@@ -119,14 +120,14 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 h = calcJumpHeight( tTO, vel, g );
 
                 % calculate jump features
-                %featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
-                %                                 acc{i}, vel, pwr, fs );
+                featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
+                                                 acc{i}, vel, pwr, fs );
 
                 % perform VMD
-                %featuresVMD = vmd( i, : );
+                featuresVMD = vmd( i, : );
 
                 % assemble features vector
-                %Z( i, : ) = [round(100*h) featuresJump featuresVMD];
+                Z( i, : ) = [round(100*h) featuresJump featuresVMD];
 
                 % plot the timing points, if required
                 if self.PlotTimePts
@@ -270,7 +271,7 @@ function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
 
     % find the last prominent acceleration peak before the vel peak
     [~, accMaxIdx] = findpeaks( acc(1:velMaxIdx), ...
-                                MinPeakHeight=2, MinPeakProminence=0.2 );
+                                MinPeakHeight=1, MinPeakProminence=0.2 );
     accMaxIdx = accMaxIdx(end);
 
     % Find the first sample such that v > 0
@@ -284,15 +285,16 @@ function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
     end
 
     % set the take-off index where acc falls below -1g
-    takeoffIdx = find( acc(accMaxIdx:end)<-g, 1 );
+    takeoffIdx = find( acc(tBP:end)<-g, 1 );
     if isempty( takeoffIdx )
         % use an alternative method
-        [~, startIdx] = findpeaks( vel, NPeaks=1 );
+        [~, startIdx] = findpeaks( vel(tBP:end), NPeaks=1 );
+        startIdx = startIdx + tBP - 1;
         endIdx = startIdx + fix(0.0235*fs);
         [~, accMinIdxTO] = min( acc(startIdx:endIdx) );
         tTO = startIdx + accMinIdxTO - 1;
     else
-        tTO = takeoffIdx + accMaxIdx - 1;
+        tTO = takeoffIdx + tBP - 1;
     end
 
 end

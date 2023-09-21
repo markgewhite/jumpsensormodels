@@ -57,7 +57,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             % This method is required by the superclass 
             % but it is redundanthere
             arguments
-                self                FPCAEncodingStrategy
+                self                DiscreteEncodingStrategy
                 thisDataset         ModelDataset %#ok<INUSA>
             end
 
@@ -119,19 +119,30 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 h = calcJumpHeight( tTO, vel, g );
 
                 % calculate jump features
-                featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
-                                                 acc{i}, vel, pwr, fs );
+                %featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
+                %                                 acc{i}, vel, pwr, fs );
 
                 % perform VMD
-                featuresVMD = vmd( i, : );
+                %featuresVMD = vmd( i, : );
 
                 % assemble features vector
-                Z( i, : ) = [round(100*h) featuresJump featuresVMD];
+                %Z( i, : ) = [round(100*h) featuresJump featuresVMD];
 
                 % plot the timing points, if required
                 if self.PlotTimePts
                     plotTimingPts( ax, acc{i}, [t0, tUB, tBP, tTO], times );
                     text( ax, 0.1, 0.8, num2str(i), units = 'normalized' );
+                    isInSeq = all( diff( [t0, tUB, tBP, tTO] )>0 );
+                    if ~isInSeq
+                        msg = 'OUT OF ORDER';
+                    else
+                        msg = '';
+                    end
+                    disp([num2str(i) ': t0 = ' num2str(t0)  ...
+                          '; tUB = ' num2str(tUB) ...
+                          '; tBP = ' num2str(tBP) ...
+                          '; tTO = ' num2str(tTO) ...
+                          '; ' msg] );
                 end
 
             end
@@ -276,7 +287,7 @@ function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
     takeoffIdx = find( acc(accMaxIdx:end)<-g, 1 );
     if isempty( takeoffIdx )
         % use an alternative method
-        startIdx = findpeaks( vel, NPeaks=1 );
+        [~, startIdx] = findpeaks( vel, NPeaks=1 );
         endIdx = startIdx + fix(0.0235*fs);
         [~, accMinIdxTO] = min( acc(startIdx:endIdx) );
         tTO = startIdx + accMinIdxTO - 1;

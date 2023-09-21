@@ -8,15 +8,16 @@ setup.data.class = @DelsysDataset;
 % -- model setup --
 setup.model.class = @JumpModel;
 setup.model.args.EncodingType = 'Continuous';
+setup.model.args.ContinuousEncodingArgs.ShowConvergence = true;
 
 % --- evaluation setup ---
 setup.eval.args.CVType = 'KFold';
 setup.eval.args.KFolds = 2;
 setup.eval.args.KFoldRepeats = 5;
-setup.eval.args.InParallel = true;
+setup.eval.args.InParallel = false;
 
 % first investigation
-name = 'test';
+name = 'test2';
 path = fileparts( which('code/testAnalysis.m') );
 path = [path '/../results/'];
 
@@ -38,8 +39,9 @@ switch testID
         aggrValRMSE = mean( myInvestigation.ValidationResults.Mean.RMSE, 3 );
 
     case 2
-        parameters = "model.args.ContinuousEncodingArgs.NumComponents";
-        values = {1:15};
+        parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
+                       "data.args.Instance" ];
+        values = { 1:15, 1:20 };
         
         myInvestigation = Investigation( name, path, parameters, values, setup );
         

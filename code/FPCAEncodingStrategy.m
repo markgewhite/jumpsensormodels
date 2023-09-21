@@ -9,6 +9,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         MeanFd          % mean curve as a functional data object
         CompFd          % component curves as functional data objects
         AlignmentSignal % reference signal for alignment
+        AlignmentTolerance % alignment variance tolerance
+        ShowConvergence % show plots and variance of alignement convergence
         Fitted          % flag whether the model has been fit
     end
 
@@ -27,6 +29,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                      mustBeLessThanOrEqual(args.PenaltyOrder, 2)} = 2
                 args.Lambda             double ...
                     {mustBePositive} = 1E-8
+                args.AlignmentTolerance double ...
+                    {mustBePositive} = 5E-2
+                args.ShowConvergence    logical = false
             end
 
             if args.PenaltyOrder > (args.BasisOrder-2)
@@ -41,6 +46,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             self.BasisOrder = args.BasisOrder;
             self.PenaltyOrder = args.PenaltyOrder;
             self.Lambda = args.Lambda;
+            self.AlignmentTolerance = args.AlignmentTolerance;
+            self.ShowConvergence = args.ShowConvergence;
             self.Fitted = false;
 
         end
@@ -122,8 +129,32 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             X = padCellToArray( thisDataset.X );
 
             % align the curves
-            [XAligned, self.AlignmentSignal] = alignCurves( X, Reference = 'Random' );
-            
+            if self.ShowConvergence
+                figure(1);
+                hold off;
+            end
+
+            prevXMeanVar = mean(var(X, [], 2));
+            converged = false;
+            i = 0;
+            XAligned = X;
+            while ~converged && i<10
+                [XAligned, self.AlignmentSignal] = alignCurves( XAligned, Reference = 'Mean' );
+                XVar = var(XAligned, [], 2);
+                XMeanVar = mean( XVar );
+                converged = abs(prevXMeanVar - XMeanVar) < self.AlignmentTolerance;
+                prevXMeanVar = XMeanVar;
+                i = i+1;
+                if self.ShowConvergence
+                    plot( XVar );
+                    hold on;
+                    disp(['XAligned Var = ' num2str( XMeanVar, '%10.8f' )]);
+                end
+            end
+            if self.ShowConvergence
+                hold off;
+            end
+
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );
 

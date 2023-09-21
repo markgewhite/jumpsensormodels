@@ -4,7 +4,7 @@ function [ alignedX, refZ, offsets, correlations ] = alignCurves( X, args )
         X               double
         args.Reference  string ...
                 {mustBeMember( args.Reference, ...
-                    {'First', 'Random', 'Specified'})} = 'Random'
+                    {'Random', 'Mean', 'Specified'})} = 'Random'
         args.RefSignal  double
     end
 
@@ -18,12 +18,12 @@ function [ alignedX, refZ, offsets, correlations ] = alignCurves( X, args )
 
     % select the reference signal
     switch args.Reference
-        case 'First'
-            refIdx = 1;
-            refZ = Z( :, refIdx );
         case 'Random'
             refIdx = randi(numSignals);
             refZ = Z( :, refIdx );
+        case 'Mean'
+            refIdx = 0;
+            refZ = mean( Z, 2 );
         case 'Specified'
             refIdx = 0;
             refZ = args.RefSignal;

@@ -8,6 +8,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         Lambda          % roughness penalty
         MeanFd          % mean curve as a functional data object
         CompFd          % component curves as functional data objects
+        AlignmentMethod % method for aligning signals prior to PCA
         AlignmentSignal % reference signal for alignment
         AlignmentTolerance % alignment variance tolerance
         ShowConvergence % show plots and variance of alignement convergence
@@ -29,6 +30,10 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                      mustBeLessThanOrEqual(args.PenaltyOrder, 2)} = 2
                 args.Lambda             double ...
                     {mustBePositive} = 1E-8
+                args.AlignmentMethod    char ...
+                    {mustBeMember( args.AlignmentMethod, ...
+                        {'XCRandom', 'XCMeanConv', ...
+                         'LMTakeoff', 'LMLanding' })} = 'XCRandom'
                 args.AlignmentTolerance double ...
                     {mustBePositive} = 5E-2
                 args.ShowConvergence    logical = false
@@ -46,6 +51,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             self.BasisOrder = args.BasisOrder;
             self.PenaltyOrder = args.PenaltyOrder;
             self.Lambda = args.Lambda;
+
+            self.AlignmentMethod = args.AlignmentMethod;
             self.AlignmentTolerance = args.AlignmentTolerance;
             self.ShowConvergence = args.ShowConvergence;
             self.Fitted = false;
@@ -65,32 +72,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             % convert to padded array
             X = padCellToArray( thisDataset.X );
 
-            % align the curves
-            if self.ShowConvergence
-                figure(1);
-                hold off;
-            end
-
-            prevXMeanVar = mean(var(X, [], 2));
-            converged = false;
-            i = 0;
-            XAligned = X;
-            while ~converged && i<10
-                [XAligned, self.AlignmentSignal] = alignCurves( XAligned, Reference = 'Mean' );
-                XVar = var(XAligned, [], 2);
-                XMeanVar = mean( XVar );
-                converged = abs(prevXMeanVar - XMeanVar) < self.AlignmentTolerance;
-                prevXMeanVar = XMeanVar;
-                i = i+1;
-                if self.ShowConvergence
-                    plot( XVar );
-                    hold on;
-                    disp(['XAligned Var = ' num2str( XMeanVar, '%10.8f' )]);
-                end
-            end
-            if self.ShowConvergence
-                hold off;
-            end
+            % align the curves, setting alignment
+            XAligned = self.setCurveAlignment( X );
 
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );
@@ -118,9 +101,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             X = padCellToArray( thisDataset.X );
 
             % align the curves
-            XAligned = alignCurves( X, ...
-                                    Reference = 'Specified', ...
-                                    RefSignal = self.AlignmentSignal );
+            XAligned = self.alignCurves( X );
 
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );
@@ -140,6 +121,54 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
 
     methods (Access = private)
+
+
+        function XAligned = setCurveAlignment( self, X )
+            % Set curve alignment when fitting
+            arguments
+                self            FPCAEncodingStrategy
+                X               double
+            end
+
+            switch self.AlignmentMethod
+
+                case 'XCRandom'
+                    [XAligned, self.AlignmentSignal] = ...
+                                xcorrAlignment( X, Reference = 'Random' );
+
+                case 'XCMeanConv'
+                    [XAligned, self.AlignmentSignal ] = ...
+                                iteratedAlignment( X, ...
+                                                   self.AlignmentTolerance, ...
+                                                   self.ShowConvergence );
+
+            end
+
+        end
+
+
+        function XAligned = alignCurves( self, X )
+            % Align the curves by chosen method
+            arguments
+                self            FPCAEncodingStrategy
+                X               double
+            end
+
+            switch self.AlignmentMethod
+
+                case {'XCRandom', 'XCMeanConv'}
+                    XAligned = xcorrAlignment( X, ...
+                                               Reference = 'Specified', ...
+                                               RefSignal = self.AlignmentSignal );
+
+                case {'LMTakeoff', 'LMLanding'}
+
+                    XAligned = [];
+
+            end
+
+        end
+
 
         function XFd = funcSmoothData( self, X )
             % Convert raw time series data to smooth functions
@@ -169,3 +198,46 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     end
 
 end
+
+
+function [XAligned, alignmentSignal ] = iteratedAlignment( X, tol, verbose )
+    % Iterate curve alignment using the mean curve
+    arguments
+        X           double
+        tol         double
+        verbose     logical
+    end
+
+    if verbose
+        figure(1);
+        hold off;
+    end
+
+    prevXMeanVar = mean(var(X, [], 2));
+    converged = false;
+    i = 0;
+    XAligned = X;
+
+    while ~converged && i<10
+        [XAligned, alignmentSignal] = xcorrAlignment( XAligned, Reference = 'Mean' );
+
+        XVar = var(XAligned, [], 2);
+        XMeanVar = mean( XVar );
+        converged = abs(prevXMeanVar - XMeanVar) < tol;
+        prevXMeanVar = XMeanVar;
+        i = i+1;
+
+        if verbose
+            plot( XVar );
+            hold on;
+            disp(['XAligned Var = ' num2str( XMeanVar, '%10.8f' )]);
+        end
+
+    end
+
+    if verbose
+        hold off;
+    end
+
+end
+

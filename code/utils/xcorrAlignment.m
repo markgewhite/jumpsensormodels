@@ -1,4 +1,4 @@
-function [ alignedX, refZ, offsets, correlations ] = alignCurves( X, args )
+function [ alignedX, refZ, offsets, correlations ] = xcorrAlignment( X, args )
     % Align X series using cross correlation with a reference signal
     arguments
         X               double

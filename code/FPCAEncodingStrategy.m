@@ -142,6 +142,11 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                                                    self.AlignmentTolerance, ...
                                                    self.ShowConvergence );
 
+                case {'LMTakeoff', 'LMLanding'}
+                    XAligned = landmarkAlignment( X, ...
+                                        landmark = self.AlignmentMethod );
+
+
             end
 
         end
@@ -162,8 +167,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                                                RefSignal = self.AlignmentSignal );
 
                 case {'LMTakeoff', 'LMLanding'}
-
-                    XAligned = [];
+                    XAligned = landmarkAlignment( X, ...
+                                        landmark = self.AlignmentMethod );
 
             end
 

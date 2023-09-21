@@ -36,7 +36,7 @@ for i = testIndices
         case 1
             name = 'SamplingTest';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
-            setup.eval.args.KFoldRepeats = 1;
+            setup.eval.args.KFoldRepeats = 5;
 
             parameters = [ "data.args.Proportion", ...
                            "data.class", ...
@@ -45,9 +45,9 @@ for i = testIndices
             values = {0.2:0.2:1.0, ...
                       {@SmartphoneDataset, @DelsysDataset}, ...
                       {'Continuous', 'Discrete'}, ...
-                      1:2 };
+                      1:20 };
             
-            myInvestigation{i} = Investigation( name, path, parameters, values, setup );
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
             
@@ -57,7 +57,7 @@ for i = testIndices
         case 2
             name = 'ContAlignTest';
             setup.model.args.EncodingType = 'Continuous';
-            setup.eval.args.KFoldRepeats = 1;
+            setup.eval.args.KFoldRepeats = 20;
 
             parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
                            "data.class", ...

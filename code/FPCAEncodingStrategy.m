@@ -103,6 +103,11 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 thisDataset         ModelDataset
             end
 
+            if ~self.Fitted
+                Z = [];
+                return
+            end
+
             % convert to padded array
             X = padData( thisDataset.X, ...
                          PadLen = self.Length, ...
@@ -227,7 +232,7 @@ function [XAligned, alignmentSignal ] = iteratedAlignment( X, tol, verbose )
         hold off;
     end
 
-    prevXMeanVar = mean(var(X, [], 2));
+    prevXMeanVar = mean(var(permute(X, [1 3 2]), [], 3), 'all');
     converged = false;
     i = 0;
     XAligned = X;
@@ -235,8 +240,8 @@ function [XAligned, alignmentSignal ] = iteratedAlignment( X, tol, verbose )
     while ~converged && i<10
         [XAligned, alignmentSignal] = xcorrAlignment( XAligned, Reference = 'Mean' );
 
-        XVar = var(XAligned, [], 2);
-        XMeanVar = mean( XVar );
+        XVar = var(permute(XAligned, [1 3 2]), [], 3);
+        XMeanVar = mean( XVar, 'all' );
         converged = abs(prevXMeanVar - XMeanVar) < tol;
         prevXMeanVar = XMeanVar;
         i = i+1;

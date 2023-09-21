@@ -3,6 +3,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
     properties
         NumComponents   % number of principal components
+        Length          % fixed length for encoding
         BasisOrder      % basis function order
         PenaltyOrder    % roughness penalty order
         Lambda          % roughness penalty
@@ -70,7 +71,12 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             end
 
             % convert to padded array
-            X = padCellToArray( thisDataset.X );
+            X = padData( thisDataset.X, ...
+                         Longest = true, ...
+                         Same = true, ...
+                         Location = 'Right' );
+
+            self.Length = size( X, 1 );
 
             % align the curves, setting alignment
             XAligned = self.setCurveAlignment( X );
@@ -98,7 +104,10 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             end
 
             % convert to padded array
-            X = padCellToArray( thisDataset.X );
+            X = padData( thisDataset.X, ...
+                         PadLen = self.Length, ...
+                         Same = true, ...
+                         Location = 'Right' );
 
             % align the curves
             XAligned = self.alignCurves( X );

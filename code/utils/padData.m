@@ -1,21 +1,21 @@
-function XP = padData( X, padLen, padValue, args )
+function XP = padData( X, args )
     % Pad time series to a specified length
     arguments
         X               cell             % arrays of time series
-        padLen          double           % padding length (ignored if longest)
-        padValue        double           % padding value (ignored if same)
+        args.PadLen     double = 0       % padding length (ignored if longest)
+        args.PadValue   double = 0       % padding value (ignored if same)
         args.Longest    logical = false  % whether to pad to the longest
         args.Same       logical = false  % whether to pad with same value
         args.Location     char {mustBeMember( args.Location, ...
             {'Left', 'Right', 'Both', 'Symmetric'} )} = 'Left' % padding location
-        args.Anchoring    char {mustBeMember( args.Anchoring, ...
-            {'None', 'Left', 'Right', 'Both'} )} = 'None' % anchoring location
     end
     
     len = cellfun( @length, X );
     allSameLength = (std(len)==0);
-    if args.Longest
+    if args.Longest || args.PadLen==0
         padLen = max( len );
+    else
+        padLen = args.PadLen;
     end
        
     nObs = length( X );
@@ -35,8 +35,8 @@ function XP = padData( X, padLen, padValue, args )
                 xStart = X{i}(1,:);
                 xEnd = X{i}(end,:);
             else
-                xStart = repelem( padValue, 1, nDim );
-                xEnd = repelem( padValue, 1, nDim );
+                xStart = repelem( args.PadValue, 1, nDim );
+                xEnd = repelem( args.PadValue, 1, nDim );
             end
         
             switch args.Location
@@ -71,23 +71,6 @@ function XP = padData( X, padLen, padValue, args )
 
         end
 
-    end
-
-    % for anchoring set the same value at limits across the dataset
-    if nObs > 1
-        switch args.Anchoring
-    
-            case 'Left'
-                XP( 1, :, : ) = repmat( mean( XP(1, :, :), 2 ), nObs, 1 );
-    
-            case 'Right'
-                XP( end, :, : ) = repmat( mean( XP(end, :, :), 2 ), nObs, 1 );
-    
-            case 'Both'
-                XP( 1, :, : ) = repmat( mean( XP(1, :, :), 2 ), nObs, 1 );
-                XP( end, :, : ) = repmat( mean( XP(end, :, :), 2 ), nObs, 1 );
-    
-        end
     end
 
 end

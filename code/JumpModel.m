@@ -82,6 +82,9 @@ classdef JumpModel < handle
                 thisDataset     ModelDataset
             end
 
+            % fit the encoding model
+            self.EncodingStrategy.fit( thisDataset );
+
             % generate the encoding
             Z = self.EncodingStrategy.extractFeatures( thisDataset );
 

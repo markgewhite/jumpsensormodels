@@ -53,6 +53,17 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
         end
 
 
+        function self = fit( self, thisDataset )
+            % This method is required by the superclass 
+            % but it is redundanthere
+            arguments
+                self                FPCAEncodingStrategy
+                thisDataset         ModelDataset %#ok<INUSA>
+            end
+
+        end
+
+
         function Z = extractFeatures( self, thisDataset )
             % Compute the features 
             arguments

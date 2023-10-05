@@ -70,7 +70,7 @@ classdef DelsysDataset < ModelDataset
 
     methods (Static)
 
-        function [ XCell, Y, subjectID ] = load( type, sensor, outcome )
+        function [ XCell, Y, S ] = load( type, sensor, outcome )
 
             path = fileparts( which('DelsysDataset.m') );
             path = [path '/../data/'];
@@ -87,6 +87,10 @@ classdef DelsysDataset < ModelDataset
                     acc = reshape( delsysJumpData.acc(:,:,2), [], 1 );
             end
             outcome = reshape( delsysJumpData.(outcome), [], 1 );
+
+            % setup the subject identities as numeric for now
+            [numSubjects, numTrials] = size( delsysJumpData.type );        
+            subjectIDs = repmat( 1:numSubjects, [numTrials 1] );
             
             % make the selection
             selection = find( jumpType==type );
@@ -97,6 +101,7 @@ classdef DelsysDataset < ModelDataset
             % extract the data
             XCell = acc( selection );
             Y = outcome( selection );
+            S = string(num2str( subjectIDs( selection ), 'S%02u' ));
 
             % convert to the resultant
             XCell = cellfun( @(x) sqrt(sum(x.^2, 2)), XCell, ...
@@ -105,9 +110,6 @@ classdef DelsysDataset < ModelDataset
             % scale it
             XCell = cellfun( @(x) 9.812*x, XCell, ...
                              UniformOutput=false );
-
-            % infer the subject IDs knowing that array width
-            subjectID = num2str( fix( selection/size(type,2) ), 'S%02u' );
 
        end
 

@@ -262,7 +262,7 @@ function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
 
     % find the first minimum in velocity (peak in negative vel)
     [~, tUB, ~, p] = findpeaks( -vel, NPeaks = 1, ...
-                          MinPeakHeight=0, MinPeakProminence=0.2);
+                          MinPeakProminence=0.2);
 
     % find the next maximum in velocity after the minimum
     [~, velMaxIdx, ~, p] = findpeaks( vel(tUB:end), NPeaks = 1, ...

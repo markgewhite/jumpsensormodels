@@ -79,24 +79,26 @@ classdef DelsysDataset < ModelDataset
 
             % find the jumps of the specified type
             % first, flatten the arrays
-            jumpType = reshape( delsysJumpData.type, [], 1 );         
+            jumpType = reshape( delsysJumpData.type', [], 1 );         
             switch sensor
                 case 'LB'
                     acc = reshape( delsysJumpData.acc(:,:,1), [], 1 );
                 case 'UB'
-                    acc = reshape( delsysJumpData.acc(:,:,2), [], 1 );
+                    acc = reshape( delsysJumpData.acc(:,:,2)', [], 1 );
             end
-            outcome = reshape( delsysJumpData.(outcome), [], 1 );
+            outcome = reshape( delsysJumpData.(outcome)', [], 1 );
 
             % setup the subject identities as numeric for now
             [numSubjects, numTrials] = size( delsysJumpData.type );        
             subjectIDs = repmat( 1:numSubjects, [numTrials 1] );
+            subjectIDs = reshape( subjectIDs, [], 1 );
             
             % make the selection
             selection = find( jumpType==type );
 
-            % remove 190
-            selection(190) = [];
+            % remove rows where there is no acc recorded
+            isMissing = cellfun( @isempty, acc );
+            selection( isMissing(selection) ) = [];
 
             % extract the data
             XCell = acc( selection );

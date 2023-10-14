@@ -79,14 +79,16 @@ classdef DelsysDataset < ModelDataset
 
             % find the jumps of the specified type
             % first, flatten the arrays
-            jumpType = reshape( delsysJumpData.type', [], 1 );         
+            jumpType = reshape( delsysJumpData.type', [], 1 );     
             switch sensor
                 case 'LB'
-                    acc = reshape( delsysJumpData.acc(:,:,1), [], 1 );
+                    acc = reshape( delsysJumpData.acc(:,:,1)', [], 1 );
                 case 'UB'
                     acc = reshape( delsysJumpData.acc(:,:,2)', [], 1 );
             end
             outcome = reshape( delsysJumpData.(outcome)', [], 1 );
+            %q = cellfun( @(x) sum(x,'all'), delsysJumpData.acc(:,:,1) );
+            %outcome = reshape( q', [], 1 );
 
             % setup the subject identities as numeric for now
             [numSubjects, numTrials] = size( delsysJumpData.type );        

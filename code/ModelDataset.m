@@ -106,7 +106,7 @@ classdef ModelDataset < handle
             % load VMD features 
             [vmd, vmdParams] = self.loadVMD;
 
-            if isequal( vmdParams, self.VMDParams )
+            if isequal( vmdParams, self.VMDParams ) && length(vmd)==self.NumObs
                 % previous run's data does match - re-use it
                 self.VMD = vmd;
             else

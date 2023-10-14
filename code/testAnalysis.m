@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 1:2;
+testIndices = 2;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -34,7 +34,7 @@ for i = testIndices
     switch i
     
         case 1
-            name = 'SamplingTest';
+            name = 'SamplingTest1';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
             setup.eval.args.KFoldRepeats = 5;
 
@@ -45,7 +45,7 @@ for i = testIndices
             values = {0.2:0.2:1.0, ...
                       {@SmartphoneDataset, @DelsysDataset}, ...
                       {'Continuous', 'Discrete'}, ...
-                      1:20 };
+                      1:5};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
@@ -55,14 +55,14 @@ for i = testIndices
             aggrValRMSE = mean( myInvestigation{i}.ValidationResults.Mean.RMSE, 4 );
     
         case 2
-            name = 'ContAlignTest';
+            name = 'ContAlignTest1';
             setup.model.args.EncodingType = 'Continuous';
             setup.eval.args.KFoldRepeats = 20;
 
             parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
                            "data.class", ...
                            "model.args.ContinuousEncodingArgs.AlignmentMethod"];
-            values = { 1:15, ...
+            values = { 2:2:16, ...
                        {@SmartphoneDataset, @DelsysDataset}, ...
                        {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding' } };
             

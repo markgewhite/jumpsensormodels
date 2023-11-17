@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 2;
+testIndices = 3;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -69,6 +69,24 @@ for i = testIndices
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
+
+        case 3
+            name = 'GenericTest1';
+            setup.model.args.EncodingType = 'Continuous';
+            setup.eval.args.KFoldRepeats = 20;
+            setup.data.class = @TestDataset;
+
+            parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
+                           "data.args.Instance" ];
+            values = {2:2:16, ...
+                      1:10};
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            
+            myInvestigation{i}.run;
+
+            aggrTrainRMSE = mean( myInvestigation{i}.TrainingResults.Mean.RMSE, 2 );
+            aggrValRMSE = mean( myInvestigation{i}.ValidationResults.Mean.RMSE, 2 );
     
     end
 

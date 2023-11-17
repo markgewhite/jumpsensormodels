@@ -184,7 +184,7 @@ classdef ModelDataset < handle
         end
 
 
-        function truncate( self, proportion )
+        function self = truncate( self, proportion )
             % Truncate the dataset by taking a random smaller proportion
             arguments
                 self        ModelDataset

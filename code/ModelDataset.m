@@ -144,7 +144,19 @@ classdef ModelDataset < handle
 
         end
 
+        
+        function accCell = getAcceleration( self )
+            % Extract the acceleration component
+            arguments
+                self            ModelDataset            
+            end
+               
+            accCell = cellfun( @(x) x, self.X, ...
+                               UniformOutput = false );
 
+        end
+
+        
         function XFilt = filterX( self )
             % Smooth the raw data using a low-pass filter
             arguments
@@ -354,12 +366,6 @@ classdef ModelDataset < handle
 
     end
 
-
-    methods (Abstract)
-
-        getAcceleration( self )
-
-    end
 
 end
 

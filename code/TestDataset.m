@@ -32,18 +32,7 @@ classdef TestDataset < ModelDataset
 
 
         end
-        
-        
-        function accCell = getAcceleration( self )
-            % Extract the acceleration component
-            arguments
-                self            ModelDataset            
-            end
-               
-            accCell = cellfun( @(x) x, self.X, ...
-                               UniformOutput = false );
 
-        end
 
     end
     

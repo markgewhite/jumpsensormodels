@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 3;
+testIndices = 5;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -87,7 +87,34 @@ for i = testIndices
 
             aggrTrainRMSE = mean( myInvestigation{i}.TrainingResults.Mean.RMSE, 2 );
             aggrValRMSE = mean( myInvestigation{i}.ValidationResults.Mean.RMSE, 2 );
+
+        case 4
+            name = 'Synthetic1';
+            zscore = 0.5;
+            setup.data.class = @SyntheticDataset;
+            setup.data.args.ClassSizes = [200 200];
+            setup.data.args.NumTemplatePts = 17;
+            setup.data.args.Scaling = [8 4 2 1];
+            setup.data.args.Mu = 0.25*[4 3 2 1];
+            setup.data.args.Sigma = zscore*setup.data.args.Mu;
+            setup.data.args.Eta = 0.1;
+            setup.data.args.Tau = 0.2;    
+            setup.data.args.WarpLevel = 1;
+            setup.data.args.SharedLevel = 3;
     
+            setup.model.args.EncodingType = 'Continuous';
+            setup.eval.args.KFoldRepeats = 50;
+
+            parameters = [ "model.args.ContinuousEncodingArgs.NumComponents" ];
+            values = {1:10};
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            
+            myInvestigation{i}.run;
+
+            aggrTrainRMSE = mean( myInvestigation{i}.TrainingResults.Mean.RMSE, 2 );
+            aggrValRMSE = mean( myInvestigation{i}.ValidationResults.Mean.RMSE, 2 );
+
     end
 
 end

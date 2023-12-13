@@ -24,7 +24,7 @@ function self = run( self )
     parfor i = 1:nEval
 
         try
-            argsCell = namedargs2cell( setups{i}.eval.args );
+            argsCell = namedargs2cell( setups{i}.eval );
         catch
             argsCell = {};
         end

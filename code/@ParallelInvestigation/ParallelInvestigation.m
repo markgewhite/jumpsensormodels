@@ -19,7 +19,7 @@ classdef ParallelInvestigation < Investigation
                 catchErrors     logical = false
             end
 
-            setup.eval.args.Verbose = false;
+            setup.eval.Verbose = false;
 
             self@Investigation( name, path, parameters, ...
                                 searchValues, setup, ...

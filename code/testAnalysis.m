@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 5;
+testIndices = 1;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -11,10 +11,10 @@ setup.data.class = @DelsysDataset;
 setup.model.class = @JumpModel;
 
 % --- evaluation setup ---
-setup.eval.args.CVType = 'KFold';
-setup.eval.args.KFolds = 2;
-setup.eval.args.KFoldRepeats = 5;
-setup.eval.args.InParallel = false;
+setup.eval.CVType = 'KFold';
+setup.eval.KFolds = 2;
+setup.eval.KFoldRepeats = 5;
+setup.eval.InParallel = false;
 
 % results location
 path = fileparts( which('code/testAnalysis.m') );
@@ -38,12 +38,10 @@ for i = testIndices
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
             setup.eval.args.KFoldRepeats = 5;
 
-            parameters = [ "data.args.Proportion", ...
-                           "data.class", ...
+            parameters = [ "data.class", ...
                            "model.args.EncodingType", ...
                            "data.args.Instance" ];
-            values = {0.2:0.2:1.0, ...
-                      {@SmartphoneDataset, @DelsysDataset}, ...
+            values = {{@SmartphoneDataset, @DelsysDataset}, ...
                       {'Continuous', 'Discrete'}, ...
                       1:5};
             
@@ -73,13 +71,11 @@ for i = testIndices
         case 3
             name = 'GenericTest1';
             setup.model.args.EncodingType = 'Continuous';
-            setup.eval.args.KFoldRepeats = 20;
+            setup.eval.args.KFoldRepeats = 50;
             setup.data.class = @TestDataset;
 
-            parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
-                           "data.args.Instance" ];
-            values = {2:2:16, ...
-                      1:10};
+            parameters = "model.args.ContinuousEncodingArgs.NumComponents";
+            values = {1:1:12};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
@@ -105,7 +101,7 @@ for i = testIndices
             setup.model.args.EncodingType = 'Continuous';
             setup.eval.args.KFoldRepeats = 50;
 
-            parameters = [ "model.args.ContinuousEncodingArgs.NumComponents" ];
+            parameters = "model.args.ContinuousEncodingArgs.NumComponents";
             values = {1:10};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );

@@ -53,9 +53,11 @@ end
 
 function offset = findLandmark( Z, landmark )
 
-    [pk, pkIdx] = findpeaks( Z, MinPeakHeight=50, MinPeakDistance=25 );
+    % find all peaks with a minimum separation
+    [~, pkIdx, ~, pkProm] = findpeaks( Z, MinPeakDistance=25 );
 
-    [~, sortIdx] = sort( -pk );
+    % find the two most prominent
+    [~, sortIdx] = sort( -pkProm );
 
     switch landmark
         case 'LMTakeoff'

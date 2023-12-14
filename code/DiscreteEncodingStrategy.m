@@ -55,7 +55,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
         function self = fit( self, thisDataset )
             % This method is required by the superclass 
-            % but it is redundanthere
+            % but it is redundant here
             arguments
                 self                DiscreteEncodingStrategy
                 thisDataset         ModelDataset %#ok<INUSA>

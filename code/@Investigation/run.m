@@ -16,7 +16,7 @@ function self = run( self )
         idxC = num2cell( idx );
 
         try
-            argsCell = namedargs2cell( self.Setups{ idxC{:} }.eval.args );
+            argsCell = namedargs2cell( self.Setups{ idxC{:} }.eval );
         catch
             argsCell = {};
         end

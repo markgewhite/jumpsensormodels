@@ -32,7 +32,7 @@ classdef JumpModel < handle
                 args.ContinuousEncodingArgs struct
                 args.ModelType          string ...
                     {mustBeMember( args.ModelType, ...
-                            {'Linear', 'SVM', 'XGBoost'})} = 'Linear'
+                            {'Linear', 'Linear2', 'SVM', 'XGBoost'})} = 'Linear'
                 args.ModelArgs          struct
             end
 
@@ -92,6 +92,8 @@ classdef JumpModel < handle
             switch self.ModelType
                 case 'Linear'
                     modelFcn = @fitrlinear;
+                case 'Linear2'
+                    modelFcn = @(z, y) fitlm( z, y, 'linear' );
                 case 'SVM'
                     modelFcn = @fitrsvm;
                 case 'XGBoost'

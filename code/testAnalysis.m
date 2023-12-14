@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 1;
+testIndices = 2;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -36,7 +36,7 @@ for i = testIndices
         case 1
             name = 'SamplingTest1';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
-            setup.eval.args.KFoldRepeats = 5;
+            setup.eval.KFoldRepeats = 5;
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType", ...
@@ -55,23 +55,25 @@ for i = testIndices
         case 2
             name = 'ContAlignTest1';
             setup.model.args.EncodingType = 'Continuous';
-            setup.eval.args.KFoldRepeats = 20;
+            setup.model.args.ModelType = 'Linear2';
+
+            setup.eval.KFoldRepeats = 20;
 
             parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
                            "data.class", ...
                            "model.args.ContinuousEncodingArgs.AlignmentMethod"];
             values = { 2:2:16, ...
-                       {@SmartphoneDataset, @DelsysDataset}, ...
+                       {@DelsysDataset}, ...
                        {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding' } };
             
-            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            myInvestigation{i} = Investigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
 
         case 3
             name = 'GenericTest1';
             setup.model.args.EncodingType = 'Continuous';
-            setup.eval.args.KFoldRepeats = 50;
+            setup.eval.KFoldRepeats = 50;
             setup.data.class = @TestDataset;
 
             parameters = "model.args.ContinuousEncodingArgs.NumComponents";
@@ -99,7 +101,7 @@ for i = testIndices
             setup.data.args.SharedLevel = 3;
     
             setup.model.args.EncodingType = 'Continuous';
-            setup.eval.args.KFoldRepeats = 50;
+            setup.eval.KFoldRepeats = 50;
 
             parameters = "model.args.ContinuousEncodingArgs.NumComponents";
             values = {1:10};

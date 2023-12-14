@@ -99,8 +99,11 @@ classdef DelsysDataset < ModelDataset
             selection = find( jumpType==type );
 
             % remove rows where there is no acc recorded
+            % or where the scaling is erroneous
             isMissing = cellfun( @isempty, acc );
-            selection( isMissing(selection) ) = [];
+            isWronglyScaled = cellfun( @(a) abs(mean(a, 'all'))>10, acc );
+            removalList = isMissing | isWronglyScaled;
+            selection( removalList(selection) ) = [];
 
             % extract the data
             XCell = acc( selection );

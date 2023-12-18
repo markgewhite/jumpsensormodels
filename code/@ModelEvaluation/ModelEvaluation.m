@@ -85,7 +85,6 @@ classdef ModelEvaluation < handle
             self.initDatasets( setup );
             
             % train the model
-            startTime = tic;
             if self.InParallel
                 self.trainModelsInParallel( setup.model );
             else
@@ -95,13 +94,8 @@ classdef ModelEvaluation < handle
             % evaluate the trained model
             self.evaluateModels( 'Training' );
             self.evaluateModels( 'Validation' );           
-
-            self.CVTiming.Training.Mean.TotalEvaluationTime = toc(startTime);
             
             if self.Verbose
-                disp(['Total Evaluation Time = ' ...
-                    num2str(self.CVTiming.Training.Mean.TotalEvaluationTime)]);
-    
                 disp('Training evaluation:');
                 reportResult( self.CVLoss.Training.Mean );
                 disp('Validation evaluation:');

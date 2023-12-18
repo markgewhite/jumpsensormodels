@@ -100,9 +100,13 @@ classdef Investigation < handle
 
         % class methods
 
+        self = aggregateResults( self, d )
+
         evaluateAll( self )
 
         datasets = getDatasets( self, args )
+
+        [trnTbl, valTbl] = getMeanAndSD( self, args )
         
         report = getResults( self )
 

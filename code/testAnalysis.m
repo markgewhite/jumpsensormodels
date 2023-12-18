@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 2;
+testIndices = 1;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -35,27 +35,30 @@ for i = testIndices
     
         case 1
             name = 'SamplingTest1';
-            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
-            setup.eval.KFoldRepeats = 5;
+            setup.model.args.ModelType = 'Linear';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
 
-            parameters = [ "data.class", ...
+            setup.eval.KFoldRepeats = 1;
+
+            parameters = [ "data.args.Proportion", ...
+                           "data.class", ...
                            "model.args.EncodingType", ...
                            "data.args.Instance" ];
-            values = {{@SmartphoneDataset, @DelsysDataset}, ...
+            values = {0.2:0.2:1.0, ...
+                      {@SmartphoneDataset, @DelsysDataset}, ...
                       {'Continuous', 'Discrete'}, ...
-                      1:5};
+                      1:3};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
-            
-            aggrTrainRMSE = mean( myInvestigation{i}.TrainingResults.Mean.RMSE, 4 );
-            aggrValRMSE = mean( myInvestigation{i}.ValidationResults.Mean.RMSE, 4 );
-    
+
+            myInvestigation{i}.aggregateResults( 4 );
+                
         case 2
             name = 'ContAlignTest1';
             setup.model.args.EncodingType = 'Continuous';
-            setup.model.args.ModelType = 'Linear2';
+            setup.model.args.ModelType = 'Linear';
 
             setup.eval.KFoldRepeats = 25;
 
@@ -64,55 +67,39 @@ for i = testIndices
                            "model.args.ContinuousEncodingArgs.AlignmentMethod"];
             values = { 2:2:16, ...
                        {@SmartphoneDataset, @DelsysDataset}, ...
-                       {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding' } };
+                       {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding'} };
             
-            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            myInvestigation{i} = Investigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
+
+            resultsTrnMeanTbl = array2table( reshape(myInvestigation{i}.TrainingResults.Mean.RMSE, 8, []) );
+            resultsTrnSDTbl = array2table( reshape(myInvestigation{i}.TrainingResults.SD.RMSE, 8, [] ));
+            fullTrnTbl = tableOfStrings( resultsTrnMeanTbl, resultsTrnSDTbl, format = '%1.2f' );
+
+            resultsValMeanTbl = array2table( reshape(myInvestigation{i}.ValidationResults.Mean.RMSE, 8, []) );
+            resultsValSDTbl = array2table( reshape(myInvestigation{i}.ValidationResults.SD.RMSE, 8, [] ));
+            fullValTbl = tableOfStrings( resultsValMeanTbl, resultsValSDTbl, format = '%1.2f' );
 
         case 3
-            name = 'GenericTest1';
+            name = 'ModelTest1';
             setup.model.args.EncodingType = 'Continuous';
-            setup.eval.KFoldRepeats = 50;
-            setup.data.class = @TestDataset;
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
 
-            parameters = "model.args.ContinuousEncodingArgs.NumComponents";
-            values = {1:1:12};
+            setup.eval.KFoldRepeats = 25;
+
+            parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
+                           "data.class", ...
+                           "model.args.ModelType"];
+            values = { 2:2:16, ...
+                       {@SmartphoneDataset, @DelsysDataset}, ...
+                       {'Linear', 'LinearReg', 'SVM', 'XGBoost'} };
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
-
-            aggrTrainRMSE = mean( myInvestigation{i}.TrainingResults.Mean.RMSE, 2 );
-            aggrValRMSE = mean( myInvestigation{i}.ValidationResults.Mean.RMSE, 2 );
-
-        case 4
-            name = 'Synthetic1';
-            zscore = 0.5;
-            setup.data.class = @SyntheticDataset;
-            setup.data.args.ClassSizes = [200 200];
-            setup.data.args.NumTemplatePts = 17;
-            setup.data.args.Scaling = [8 4 2 1];
-            setup.data.args.Mu = 0.25*[4 3 2 1];
-            setup.data.args.Sigma = zscore*setup.data.args.Mu;
-            setup.data.args.Eta = 0.1;
-            setup.data.args.Tau = 0.2;    
-            setup.data.args.WarpLevel = 1;
-            setup.data.args.SharedLevel = 3;
-    
-            setup.model.args.EncodingType = 'Continuous';
-            setup.eval.KFoldRepeats = 50;
-
-            parameters = "model.args.ContinuousEncodingArgs.NumComponents";
-            values = {1:10};
-            
-            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
-            
-            myInvestigation{i}.run;
-
-            aggrTrainRMSE = mean( myInvestigation{i}.TrainingResults.Mean.RMSE, 2 );
-            aggrValRMSE = mean( myInvestigation{i}.ValidationResults.Mean.RMSE, 2 );
 
     end
+
 
 end

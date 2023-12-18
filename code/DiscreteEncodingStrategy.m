@@ -148,16 +148,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
             end
 
-            % convert into a table
-            varNames = {'h', 'A', 'b', 'C', 'D', 'e', 'F', 'G', 'H', 'i', 'J', 'k', 'l', 'M',...
-                        'n', 'O', 'p', 'q', 'r', 's', 'u', 'W', 'z'};
-
-            vmdVars = arrayfun(@(n) ['f' num2str(n)], numNodes:-1:1, ...
-                               'UniformOutput', false);
-            varNames = [varNames, vmdVars];
-            
-            Z = array2table( Z, 'VariableNames', varNames);
-
         end
 
     end

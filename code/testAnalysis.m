@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 1;
+testIndices = 1:3;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -38,7 +38,7 @@ for i = testIndices
             setup.model.args.ModelType = 'Linear';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
 
-            setup.eval.KFoldRepeats = 1;
+            setup.eval.KFoldRepeats = 5;
 
             parameters = [ "data.args.Proportion", ...
                            "data.class", ...
@@ -47,7 +47,7 @@ for i = testIndices
             values = {0.2:0.2:1.0, ...
                       {@SmartphoneDataset, @DelsysDataset}, ...
                       {'Continuous', 'Discrete'}, ...
-                      1:3};
+                      1:10};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
@@ -69,17 +69,9 @@ for i = testIndices
                        {@SmartphoneDataset, @DelsysDataset}, ...
                        {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding'} };
             
-            myInvestigation{i} = Investigation( name, path, parameters, values, setup );
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
-
-            resultsTrnMeanTbl = array2table( reshape(myInvestigation{i}.TrainingResults.Mean.RMSE, 8, []) );
-            resultsTrnSDTbl = array2table( reshape(myInvestigation{i}.TrainingResults.SD.RMSE, 8, [] ));
-            fullTrnTbl = tableOfStrings( resultsTrnMeanTbl, resultsTrnSDTbl, format = '%1.2f' );
-
-            resultsValMeanTbl = array2table( reshape(myInvestigation{i}.ValidationResults.Mean.RMSE, 8, []) );
-            resultsValSDTbl = array2table( reshape(myInvestigation{i}.ValidationResults.SD.RMSE, 8, [] ));
-            fullValTbl = tableOfStrings( resultsValMeanTbl, resultsValSDTbl, format = '%1.2f' );
 
         case 3
             name = 'ModelTest1';

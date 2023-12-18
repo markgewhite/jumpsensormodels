@@ -79,7 +79,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             self.Length = size( X, 1 );
 
             % align the curves, setting alignment
-            XAligned = self.setCurveAlignment( X );
+            XAligned = self.setCurveAlignment( X, thisDataset.SampleFreq );
 
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );
@@ -137,11 +137,12 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     methods (Access = private)
 
 
-        function XAligned = setCurveAlignment( self, X )
+        function XAligned = setCurveAlignment( self, X, freq )
             % Set curve alignment when fitting
             arguments
                 self            FPCAEncodingStrategy
                 X               double
+                freq            double = 100
             end
 
             switch self.AlignmentMethod
@@ -158,7 +159,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
                 case {'LMTakeoff', 'LMLanding'}
                     XAligned = landmarkAlignment( X, ...
-                                        landmark = self.AlignmentMethod );
+                                        landmark = self.AlignmentMethod, ...
+                                        samplefreq = freq );
 
 
             end
@@ -257,6 +259,157 @@ function [XAligned, alignmentSignal ] = iteratedAlignment( X, tol, verbose )
     if verbose
         hold off;
     end
+
+end
+
+
+function [ alignedX, refZ, offsets, correlations ] = xcorrAlignment( X, args )
+    % Align X series using cross correlation with a reference signal
+    arguments
+        X               double
+        args.Reference  string ...
+                {mustBeMember( args.Reference, ...
+                    {'Random', 'Mean', 'Specified'})} = 'Random'
+        args.RefSignal  double
+    end
+
+    [sigLength, numSignals, numDim] = size( X );
+    
+    % shift dimensions
+    X = permute( X, [1 3 2] );
+
+    % align the squared diff of the resultant
+    Z = squeeze(diff( sqrt(sum(X.^2, 2)) ).^2);
+
+    % select the reference signal
+    switch args.Reference
+        case 'Random'
+            refIdx = randi(numSignals);
+            refZ = Z( :, refIdx );
+        case 'Mean'
+            refIdx = 0;
+            refZ = mean( Z, 2 );
+        case 'Specified'
+            refIdx = 0;
+            refZ = args.RefSignal;
+   end
+
+    % initialize
+    alignedX = zeros( sigLength, numDim, numSignals );
+    offsets = zeros( numSignals, 1 );
+    correlations = zeros( numSignals, 1 );
+
+    for i = 1:numSignals
+
+        if i==refIdx
+            % no need to align the reference signal
+            alignedX( :, :, refIdx ) = X( :, :, refIdx );
+            continue
+        end
+    
+        [offsets(i), correlations(i)] = computeOffset( refZ, Z(:,i) );
+
+        % Adjust the signal based on the offset. This is a simple shift.
+        % For more complex adjustments, you may need to interpolate.
+        if offsets(i) > 0
+            alignedX(:,:,i) = [X(1,:,i).*ones(offsets(i), numDim); 
+                               X(1:end-offsets(i),:,i)];
+        elseif offsets(i) < 0
+            alignedX(:,:,i) = [X(-offsets(i):end, :, i); 
+                               X(end,:,i).*ones(-offsets(i)-1, numDim)];
+        else
+            alignedX(:,:,i) = X(:,:,i);
+        end
+
+    end
+
+    % shift back
+    alignedX = permute( alignedX, [1 3 2] );
+
+end
+
+
+function [lagDiff, cBest] = computeOffset( reference, target )
+
+    [c, lags] = xcorr( reference, target ); 
+    [cBest, I] = max(abs(c));
+    lagDiff = lags(I);
+
+end
+
+
+function [ alignedX, offsets ] = landmarkAlignment( X, args )
+    % Align X series using a given landmark
+    arguments
+        X                   double
+        args.Landmark       string ...
+                    {mustBeMember( args.Landmark, ...
+                             {'LMTakeoff', 'LMLanding'})} = 'LMTakeoff'
+        args.SampleFreq     double = 100
+    end
+
+    [sigLength, numSignals, numDim] = size( X );
+    
+    % shift dimensions
+    X = permute( X, [1 3 2] );
+
+    % add some smoothing
+    Z = squeeze(movmean( X, fix(0.5*args.SampleFreq), 1 ));
+
+    % initializes
+    alignedX = zeros( sigLength, numDim, numSignals );
+    offsets = zeros( numSignals, 1 );
+    refIdx = fix( size(Z,1)/2 );
+
+    for i = 1:numSignals
+    
+        lmIdx= findLandmark( Z(:,i), args.Landmark );
+
+        if lmIdx > 0
+            % Adjust the signal based on the offset. This is a simple shift.
+            offsets(i) = refIdx - lmIdx;
+            if offsets(i) > 0
+                alignedX(:,:,i) = [X(1,:,i).*ones(offsets(i), numDim); 
+                                   X(1:end-offsets(i),:,i)];
+            elseif offsets(i) < 0
+                alignedX(:,:,i) = [X(-offsets(i):end, :, i); 
+                                   X(end,:,i).*ones(-offsets(i)-1, numDim)];
+            else
+                alignedX(:,:,i) = X(:,:,i);
+            end
+        else
+            alignedX(:,:,i) = X(:,:,i);
+        end
+
+    end
+
+    % shift back
+    alignedX = permute( alignedX, [1 3 2] );
+
+end
+
+
+function offset = findLandmark( Z, landmark )
+
+    % find all peaks with a minimum separation
+    [~, pkIdx, ~, pkProm] = findpeaks( Z, MinPeakDistance=25 );
+
+    % find the two most prominent
+    [~, sortIdx] = sort( -pkProm );
+
+    switch landmark
+        case 'LMTakeoff'
+            offset = min( pkIdx( sortIdx(1:2) ) );
+        case 'LMLanding'
+            offset = max( pkIdx( sortIdx(1:2) ) );
+        otherwise
+            offset = 0;
+    end
+
+    plot( Z );
+    hold on;
+    plot( offset, Z(offset), 'o' );
+    hold off;
 
 end
 

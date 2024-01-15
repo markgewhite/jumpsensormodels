@@ -95,7 +95,7 @@ for i = testIndices
             name = 'VerificationTest1';
             setup.model.args.ModelType = 'Linear';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
-            setup.model.args.DiscreteEncodingArgs.LegacyCode = true;
+            setup.model.args.DiscreteEncodingArgs.LegacyCode = false;
 
             setup.eval.KFoldRepeats = 1;
 

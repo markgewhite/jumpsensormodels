@@ -114,7 +114,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 [tUB, tBP, tTO] = findOtherTimes( acc{i}, vel, fs, g );
 
                 % compute the power time series
-                pwr  = calcPwrCurve( tTO, acc{i}, vel, g );
+                pwr  = calcPwrCurve( t0, tTO, acc{i}, vel, g );
 
                 % calculate the jump height
                 h = calcJumpHeight( tTO, vel, g );
@@ -290,24 +290,25 @@ function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
 end
 
 
-function P = calcPwrCurve( tTO, acc, vel, g )
+function P = calcPwrCurve( t0, tTO, acc, vel, g )
     % Compute the power time series
     % Code adapted from Beatrice de Lazzari
     arguments
+        t0            double {mustBeInteger, mustBePositive}
         tTO           double {mustBeInteger, mustBePositive}
         acc           double {mustBeVector}
         vel           double {mustBeVector}
         g             double
     end
 
-    P = (acc(1:tTO)+g).*vel(1:tTO);
+    P = [ zeros(t0, 1); (acc(t0:tTO)+g).*vel(t0:tTO) ];
 
 end
 
 
 function h = calcJumpHeight( tTO, vel, g )
 
-    h = .5 * vel(tTO)^2 / g;
+    h = 0.5*vel(tTO)^2/g;
 
 end
 
@@ -333,14 +334,12 @@ function features = calcJumpFeatures( t0, tUB, tBP, tTO, acc, vel, pwr, fs )
     b = min(acc( t0:tBP ));
     
     % -- C -- %
-    [~, a_min] = min(acc( t0:tBP ));
-    a_min = a_min + t0 - 1;
-    [~, a_max] = max(acc( a_min:tTO ));
-    a_max = a_max + a_min - 1;
+    [~, a_min] = min(acc(t0 : tBP));
+    [~, a_max] = max(acc(t0 : tTO));
     C = (a_max - a_min)/fs;
     
     % -- D -- %
-    F0 = find( acc(tUB:tTO)>=0, 1, 'last' );
+    F0 = find( acc(tUB:tTO)>=0, 1, 'last' ) + tUB;
     D = (F0 - tUB)/fs;
     
     % -- e -- %
@@ -358,7 +357,10 @@ function features = calcJumpFeatures( t0, tUB, tBP, tTO, acc, vel, pwr, fs )
     % -- i -- %
     tilt = diff(acc( a_min:a_max + 1));
     [~, tilt_max] = max( tilt );
-    i = acc(a_min + tilt_max);
+    if isempty(tilt_max)
+        tilt_max = 0;
+    end
+    i = acc(t0 + a_min + tilt_max);
     
     % -- J -- %
     [~, v_min] = min( vel(1:tBP) );
@@ -375,7 +377,7 @@ function features = calcJumpFeatures( t0, tUB, tBP, tTO, acc, vel, pwr, fs )
     if isempty( pwrIdx )
         P0 = length(pwr);
     else
-        P0 = pwrIdx + tBP + 2;
+        P0 = pwrIdx + tBP + 1;
     end
     M = (P0 - tBP) / fs;
     

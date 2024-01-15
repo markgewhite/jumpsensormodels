@@ -8,6 +8,10 @@ classdef JumpModel < handle
         NumChannels         % number of data channels
         Path                % file path for storing outputs
         EncodingStrategy    % encoding strategy
+        ZMean               % training encoding means
+        ZStd                % training encoding standard deviations
+        YMean               % training outcome mean
+        YStd                % training outcome standard deviation        
         ModelType           % type of model
         Model               % fitted model
         ModelArgs           % specific arguments for the model
@@ -88,6 +92,16 @@ classdef JumpModel < handle
             % generate the encoding
             Z = self.EncodingStrategy.extractFeatures( thisDataset );
 
+            % standardize the encoding
+            self.ZMean = mean( Z );
+            self.ZStd = std( Z );
+            stdZ = (Z-self.ZMean)./self.ZStd;
+            
+            % standardize the outcome
+            self.YMean = mean( thisDataset.Y );
+            self.YStd = std( thisDataset.Y );
+            stdY = (thisDataset.Y - self.YMean)/self.YStd;
+
             % select the model
             switch self.ModelType
                 case 'Linear'
@@ -104,10 +118,10 @@ classdef JumpModel < handle
 
             % fit the model with optional additional arguments
             if isempty(self.ModelArgs)
-                self.Model = modelFcn( Z, thisDataset.Y );
+                self.Model = modelFcn( stdZ, stdY );
             else
                 modelArgCell = namedargs2cell( self.ModelArgs );
-                self.Model = modelFcn( Z, thisDataset.Y, modelArgCell{:} );
+                self.Model = modelFcn( stdZ, stdY, modelArgCell{:} );
             end
 
         end
@@ -136,7 +150,7 @@ classdef JumpModel < handle
     
     methods (Static)
 
-        function [eval, Y, YHat] = evaluateSet( self, thisDataset )
+        function [eval, stdY, stdYHat] = evaluateSet( self, thisDataset )
             % Evaluate the model with a specified dataset
             arguments
                 self            JumpModel
@@ -145,16 +159,30 @@ classdef JumpModel < handle
         
             % generate the encoding
             Z = self.EncodingStrategy.extractFeatures( thisDataset );
+            stdZ = (Z - self.ZMean)./self.ZStd;
 
             % get the ground truth
-            Y = thisDataset.Y;
+            stdY = (thisDataset.Y - self.YMean)./self.YStd;
 
             % generate the predictions
-            YHat = predict( self.Model, Z );
+            stdYHat = predict( self.Model, stdZ );
         
-            % compute loss
-            eval.RMSE = sqrt(mean((YHat - Y).^2));
+            % compute standardized loss
+            eval.StdRMSE = sqrt(mean((stdYHat - stdY).^2));
 
+            % re-scaled loss
+            eval.RMSE = eval.StdRMSE*self.YStd;
+
+            % F-statistic (if linear)
+            if ismember( self.ModelType, {'Linear', 'LinearReg'} )
+                eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
+                eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;
+                eval.RSquared = self.Model.Rsquared.Ordinary;
+                eval.Shrinkage = self.Model.Rsquared.Ordinary - ...
+                                    self.Model.Rsquared.Adjusted;
+                eval.OutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
+            end
+            
         end
 
     end

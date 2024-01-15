@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 1:3;
+testIndices = 4;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -90,6 +90,25 @@ for i = testIndices
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
+
+        case 4
+            name = 'VerificationTest1';
+            setup.model.args.ModelType = 'Linear';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
+            setup.model.args.DiscreteEncodingArgs.LegacyCode = true;
+
+            setup.eval.KFoldRepeats = 1;
+
+            parameters = [ "data.class", ...
+                           "model.args.EncodingType" ];
+            values = {{@SmartphoneDataset, @DelsysDataset}, ...
+                      {'Discrete', 'Continuous'}};
+            
+            myInvestigation{i} = Investigation( name, path, parameters, values, setup );
+            
+            myInvestigation{i}.run;
+
+            myInvestigation{i}.aggregateResults( 4 );
 
     end
 

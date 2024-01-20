@@ -2,6 +2,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
     % Class for features based on discrete features
 
     properties
+        AccG            % acceleration due to gravity
         Onset           % jump onset detection parameters structure
                         %    Filtering              if signal filtering first
                         %    DetectionMethod        how to detect movement
@@ -17,9 +18,10 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
     methods
 
-        function self = DiscreteEncodingStrategy( args )
+        function self = DiscreteEncodingStrategy( samplingFreq, args )
             % Initialize the model
             arguments
+                samplingFreq            double
                 args.Filtering          logical = true
                 args.DetectionMethod        char ...
                     {mustBeMember( args.DetectionMethod, ...
@@ -35,7 +37,10 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 args.LegacyCode          logical = false
             end
 
-            self = self@EncodingStrategy;
+            self = self@EncodingStrategy( samplingFreq );
+
+            % set acceleration due to gravity and sampling
+            self.AccG = 9.80665;
 
             % set the jump onset parameters
             self.Onset.Filtering = args.Filtering;
@@ -72,11 +77,10 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             end
 
             numObs = thisDataset.NumObs;
-            fs = thisDataset.SampleFreq;
+            self.SamplingFreq = thisDataset.SampleFreq;
             acc = thisDataset.Acc;
             vmd = thisDataset.VMD;
             numNodes = thisDataset.VMDParams.NumModes;
-            g = 9.80665;
 
             % compute features for one observations at a time
             Z = zeros( numObs, 23 + numNodes );
@@ -95,7 +99,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 if self.LegacyCode
                     try
                         % check with original code
-                        [stack, data, times] = get_features_GPL_CMJ(acc{i}, fs, 0);
+                        [stack, data, times] = ...
+                            get_features_GPL_CMJ(acc{i}, self.SamplingFreq, 0);
                     catch
                         disp(['Legacy code error: row = ' num2str(i)]);
                         times = NaN;
@@ -105,24 +110,23 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 end
 
                 % find the jump start
-                t0 = findStartTime( acc{i}, fs, self.Onset );
+                t0 = self.findStartTime( acc{i} );
 
                 % compute the velocity time series
-                vel = calcVelCurve( t0, acc{i}, fs );
+                vel = self.calcVelCurve( t0, acc{i} );
 
                 % find time UB
-                [tUB, tBP, tTO] = findOtherTimes( acc{i}, vel, fs, g );
+                [tUB, tBP, tTO] = self.findOtherTimes( acc{i}, vel );
 
                 % compute the power time series
-                pwr  = calcPwrCurve( t0, tTO, acc{i}, vel, g );
+                pwr  = self.calcPwrCurve( t0, tTO, acc{i}, vel );
 
                 % calculate the jump height
-                h = calcJumpHeight( tTO, vel, g );
+                h = self.calcJumpHeight( tTO, vel );
 
                 % calculate jump features
-                featuresJump = calcJumpFeatures( t0, tUB, tBP, tTO, ...
-                                                 acc{i}, vel, pwr, fs );
-
+                featuresJump = self.calcJumpFeatures( t0, tUB, tBP, tTO, ...
+                                                    acc{i}, vel, pwr );
                 % perform VMD
                 featuresVMD = vmd( i, : );
 
@@ -150,271 +154,293 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
         end
 
-    end
 
-end
-
-
-function t0 = findStartTime( acc, fs, args )
-    % Find the start of the jump from the acceleration 
-    % Code adapted from Beatrice de Lazzari
-    arguments
-        acc             double {mustBeVector}
-        fs              double
-        args            struct
-    end
-
-    if args.Filtering
-        accFilt = bwfilt(acc, 6, fs, 50, 'low');
-    else
-        accFilt = acc;
-    end
-
-    % determine the acceleration threshold for detecting the jump
-    switch args.DetectionMethod
-
-        case 'Absolute'
-            % use the absolute deviation 
-            threshold = args.AccDetectionThreshold;
-
-        case 'SDMultiple'
-            % use a multiple of the SD within a window
-            windowWidth = fix( fs/2 );
-            switch args.WindowMethod
-
-                case 'Fixed'
-                    % set the window at the start
-                    window = 1:windowWidth;
-
-                case 'Dynamic'
-                    % locate the window close to the jump
-                    % use a coarse detection threshold
-                    detectIdx = find( abs(accFilt)>args.AccDetectionThreshold, 1 );
-                    if isempty( detectIdx )
-                        eid = 'DES-01';
-                        msg = ['Jump not detected with AccDetectionThreshold = ' ...
-                                num2str(args.AccDetectionThreshold)];
-                        throwAsCaller( MException(eid, msg) );
-                    end
-                    % locate the window back from the detection point
-                    windowStartIdx = max( detectIdx - fix(args.WindowAdjustment*fs), 1 );
-                    % define the window from that point
-                    window = windowStartIdx:(windowStartIdx+windowWidth);
-
+        function t0 = findStartTime( self, acc )
+            % Find the start of the jump from the acceleration 
+            % Code adapted from Beatrice de Lazzari
+            arguments
+                self            DiscreteEncodingStrategy
+                acc             double {mustBeVector}
             end
-            % now calculate the threshold using the defined window
-            threshold = args.SDDetectionThreshold*std( accFilt(window) );
+        
+            if self.Onset.Filtering
+                accFilt = bwfilt(acc, 6, self.SamplingFreq, 50, 'low');
+            else
+                accFilt = acc;
+            end
+        
+            % determine the acceleration threshold for detecting the jump
+            switch self.Onset.DetectionMethod
+        
+                case 'Absolute'
+                    % use the absolute deviation 
+                    threshold = self.Onset.AccDetectionThreshold;
+        
+                case 'SDMultiple'
+                    % use a multiple of the SD within a window
+                    windowWidth = fix( self.SamplingFreq/2 );
+                    switch self.Onset.WindowMethod
+        
+                        case 'Fixed'
+                            % set the window at the start
+                            window = 1:windowWidth;
+        
+                        case 'Dynamic'
+                            % locate the window close to the jump
+                            % use a coarse detection threshold
+                            detectIdx = find( abs(accFilt)>self.Onset.AccDetectionThreshold, 1 );
+                            if isempty( detectIdx )
+                                eid = 'Dynamic:NotDetected';
+                                msg = ['Jump not detected with AccDetectionThreshold = ' ...
+                                        num2str(self.Onset.AccDetectionThreshold)];
+                                throwAsCaller( MException(eid, msg) );
+                            end
+                            % locate the window back from the detection point
+                            windowStartIdx = max( detectIdx - fix(self.Onset.WindowAdjustment*self.SamplingFreq), 1 );
+                            % define the window from that point
+                            window = windowStartIdx:(windowStartIdx+windowWidth);
+        
+                    end
+                    % now calculate the threshold using the defined window
+                    threshold = self.Onset.SDDetectionThreshold*std( accFilt(window) );
+        
+            end
+        
+            % now make the final detection using threshold
+            detectIdx = find( abs(accFilt)>threshold, 1 );
+            if isempty( detectIdx )
+                eid = 'Final:NotDetected';
+                msg = ['Jump not detected with threshold = ' num2str(threshold)];
+                throwAsCaller( MException(eid, msg) );
+            end
+        
+            % make the backwards adjustment
+            t0 = max( detectIdx - round(self.Onset.DetectionAdjustment*self.SamplingFreq), 1 );
+        
+        end
+
+
+        function [tUB, tBP, tTO] = findOtherTimes( self, acc, vel )
+            % Find the remaining time indices
+            % Code adapted from Beatrice de Lazzari
+            arguments
+                self          DiscreteEncodingStrategy
+                acc           double {mustBeVector}
+                vel           double {mustBeVector}
+            end
+        
+            % find the first minimum in velocity (peak in negative vel)
+            [~, tUB] = findpeaks( -vel, NPeaks = 1, ...
+                                        MinPeakProminence=0.2);
+        
+            % find the next maximum in velocity after the minimum
+            [~, velMaxIdx] = findpeaks( vel(tUB:end), NPeaks = 1, ...
+                                              MinPeakProminence=0.2);
+            if isempty( velMaxIdx )
+                % try again without limits
+                [~, velMaxIdx] = findpeaks( vel(tUB:end), NPeaks = 1 );
+                if isempty( velMaxIdx )
+                    % use the max peak
+                    [~, velMaxIdx] = max( vel(tUB:end) );
+                end
+            end
+            velMaxIdx = velMaxIdx + tUB - 1;
+        
+            % find the last prominent acceleration peak before the vel peak
+            [~, accMaxIdx] = findpeaks( acc(1:velMaxIdx), ...
+                                        MinPeakHeight=1, MinPeakProminence=0.2 );
+            if isempty( accMaxIdx )
+                % try again without limits
+                [~, accMaxIdx] = findpeaks( acc(1:velMaxIdx) );
+                if isempty( accMaxIdx )
+                    % use the max peak
+                    [~, accMaxIdx] = max( acc(1:velMaxIdx) );
+                end
+            end
+            accMaxIdx = accMaxIdx(end);
+        
+            % Find the first sample such that v > 0
+            tBP = find( vel(tUB:end)>0, 1 );
+            if isempty( tBP )
+                % velocity never becomes positive
+                % instead, use the first acceleration peak
+                tBP = accMaxIdx;
+            else
+                tBP = tBP + tUB - 1;
+            end
+        
+            % set the take-off index where acc falls below -1g
+            takeoffIdx = find( acc(tBP:end)<-self.AccG, 1 );
+            if isempty( takeoffIdx )
+                % use an alternative method
+                [~, startIdx] = findpeaks( vel(tBP:end), NPeaks=1 );
+                startIdx = startIdx + tBP - 1;
+                endIdx = startIdx + fix(0.0235*self.SamplingFreq);
+                [~, accMinIdxTO] = min( acc(startIdx:endIdx) );
+                tTO = startIdx + accMinIdxTO - 1;
+            else
+                tTO = takeoffIdx + tBP - 1;
+            end
+        
+        end
+        
+        
+        function v = calcVelCurve( self, t0, acc )
+            % Compute Velocity from "onset"
+            % Code adapted from Beatrice de Lazzari
+            arguments
+                self            DiscreteEncodingStrategy
+                t0              double {mustBeInteger, mustBePositive}
+                acc             double {mustBeVector}
+            end
+        
+            n = length(acc);
+            t = linspace( 0, (n - t0)/self.SamplingFreq, n - t0 );
+            vt = cumtrapz(t, acc( t0:end-1 ));
+        
+            % fill v with zeros to match a shape
+            v = [ zeros(t0,1); vt ];
+        
+        end
+        
+        
+        function P = calcPwrCurve( self, t0, tTO, acc, vel )
+            % Compute the power time series
+            % Code adapted from Beatrice de Lazzari
+            arguments
+                self          DiscreteEncodingStrategy
+                t0            double {mustBeInteger, mustBePositive}
+                tTO           double {mustBeInteger, mustBePositive}
+                acc           double {mustBeVector}
+                vel           double {mustBeVector}
+            end
+        
+            P = [ zeros(t0, 1); (acc(t0:tTO)+self.AccG).*vel(t0:tTO) ];
+        
+        end
+        
+        
+        function h = calcJumpHeight( self, tTO, vel )
+            % Calculate jump height
+            arguments
+                self          DiscreteEncodingStrategy
+                tTO           double {mustBeInteger, mustBePositive}
+                vel           double {mustBeVector}
+            end
+        
+            h = 0.5*vel(tTO)^2/self.AccG;
+        
+        end
+
+
+        function features = calcJumpFeatures( self, t0, tUB, tBP, tTO, acc, vel, pwr )
+            % Calculate (almost) all jump features
+            % Code adapted from Beatrice de Lazzari
+            arguments
+                self          DiscreteEncodingStrategy
+                t0            double {mustBeInteger, mustBePositive}
+                tUB           double {mustBeInteger, mustBePositive}
+                tBP           double {mustBeInteger, mustBePositive}
+                tTO           double {mustBeInteger, mustBePositive}
+                acc           double {mustBeVector}
+                vel           double {mustBeVector}
+                pwr           double {mustBeVector}
+            end
+        
+            % -- A -- %
+            A = (tUB - t0)/self.SamplingFreq;
+            
+            % -- b -- %
+            b = min(acc( t0:tBP ));
+            
+            % -- C -- %
+            [~, a_min] = min(acc(t0 : tBP));
+            [~, a_max] = max(acc(t0 : tTO));
+            C = (a_max - a_min)/self.SamplingFreq;
+            
+            % -- D -- %
+            F0 = find( acc(tUB:tTO)>=0, 1, 'last' ) + tUB;
+            D = (F0 - tUB)/self.SamplingFreq;
+            
+            % -- e -- %
+            e = max(acc( t0:tTO ));
+            
+            % -- F -- %
+            F = (tTO - a_max)/self.SamplingFreq;
+            
+            % -- G -- %
+            G = (tTO - t0)/self.SamplingFreq;
+            
+            % -- H -- %
+            H = (tBP - a_min)/self.SamplingFreq; 
+            
+            % -- i -- %
+            tilt = diff(acc( a_min:a_max + 1));
+            [~, tilt_max] = max( tilt );
+            if isempty(tilt_max)
+                tilt_max = 0;
+            end
+            i = acc(t0 + a_min + tilt_max);
+            
+            % -- J -- %
+            [~, v_min] = min( vel(1:tBP) );
+            J = (tBP - v_min)/self.SamplingFreq;
+            
+            % -- k -- %
+            k1 = acc( tBP );
+            
+            % -- l -- %
+            l = min(pwr( tUB:tBP ));
+            
+            % -- M -- %
+            pwrIdx = find( pwr(tBP+3:end)<0, 1 );
+            if isempty( pwrIdx )
+                P0 = length(pwr);
+            else
+                P0 = pwrIdx + tBP + 1;
+            end
+            M = (P0 - tBP)/self.SamplingFreq;
+            
+            % -- n -- %
+            n = max(pwr);
+            
+            % -- O -- %
+            [~, P_max] = max(pwr);
+            O = (tTO - P_max)/self.SamplingFreq;
+            
+            % -- p -- %
+            p = (e - b) / C;
+            
+            % -- q -- %
+            time = linspace(0, (F0 - tUB)/self.SamplingFreq, (F0 - tUB));
+            shape = trapz(time, acc(tUB : F0 - 1));
+            q = shape / (D*e);
+            
+            % -- r -- %
+            r = b / e; 
+            
+            % -- s -- %
+            [~, v_max] = max(vel);
+            s = min(vel( 1:v_max ));
+            
+            % -- z -- %
+            z = mean(pwr( t0:tBP ));
+            
+            % -- u -- %
+            u = mean(pwr( tBP:tTO ));
+            
+            % -- W -- %
+            [~, P_min] = min(pwr( 1:P_max ));
+            W = (P_max - P_min)/self.SamplingFreq;
+            
+            % assemble features array 
+            features = [A, b, C, D, e, F, G, H, i, J, k1, l, M, n, O, p, q, r, s, u, W, z];
+        
+        end
+
 
     end
 
-    % now make the final detection using threshold
-    detectIdx = find( abs(accFilt)>threshold, 1 );
-    if isempty( detectIdx )
-        eid = 'DES-02';
-        msg = ['Jump not detected with threshold = ' num2str(threshold)];
-        throwAsCaller( MException(eid, msg) );
-    end
-
-    % make the backwards adjustment
-    t0 = max( detectIdx - round(args.DetectionAdjustment*fs), 1 );
-
-end
-
-
-function v = calcVelCurve( t0, acc, fs )
-    % Compute Velocity from "onset"
-    % Code adapted from Beatrice de Lazzari
-    arguments
-        t0              double {mustBeInteger, mustBePositive}
-        acc             double {mustBeVector}
-        fs              double
-    end
-
-    n = length(acc);
-    t = linspace( 0, (n - t0)/fs, n - t0 );
-    vt = cumtrapz(t, acc( t0:end-1 ));
-
-    % fill v with zeros to match a shape
-    v = [ zeros(t0,1); vt ];
-
-end
-
-
-function [tUB, tBP, tTO] = findOtherTimes( acc, vel, fs, g )
-    % Find the remaining time indices
-    % Code adapted from Beatrice de Lazzari
-    arguments
-        acc           double {mustBeVector}
-        vel           double {mustBeVector}
-        fs            double
-        g             double
-    end
-
-    % find the first minimum in velocity (peak in negative vel)
-    [~, tUB, ~, p] = findpeaks( -vel, NPeaks = 1, ...
-                          MinPeakProminence=0.2);
-
-    % find the next maximum in velocity after the minimum
-    [~, velMaxIdx, ~, p] = findpeaks( vel(tUB:end), NPeaks = 1, ...
-                          MinPeakProminence=0.2);
-    velMaxIdx = velMaxIdx + tUB - 1;
-
-    % find the last prominent acceleration peak before the vel peak
-    [~, accMaxIdx] = findpeaks( acc(1:velMaxIdx), ...
-                                MinPeakHeight=1, MinPeakProminence=0.2 );
-    accMaxIdx = accMaxIdx(end);
-
-    % Find the first sample such that v > 0
-    tBP = find( vel(tUB:end)>0, 1 );
-    if isempty( tBP )
-        % velocity never becomes positive
-        % instead, use the first acceleration peak
-        tBP = accMaxIdx;
-    else
-        tBP = tBP + tUB - 1;
-    end
-
-    % set the take-off index where acc falls below -1g
-    takeoffIdx = find( acc(tBP:end)<-g, 1 );
-    if isempty( takeoffIdx )
-        % use an alternative method
-        [~, startIdx] = findpeaks( vel(tBP:end), NPeaks=1 );
-        startIdx = startIdx + tBP - 1;
-        endIdx = startIdx + fix(0.0235*fs);
-        [~, accMinIdxTO] = min( acc(startIdx:endIdx) );
-        tTO = startIdx + accMinIdxTO - 1;
-    else
-        tTO = takeoffIdx + tBP - 1;
-    end
-
-end
-
-
-function P = calcPwrCurve( t0, tTO, acc, vel, g )
-    % Compute the power time series
-    % Code adapted from Beatrice de Lazzari
-    arguments
-        t0            double {mustBeInteger, mustBePositive}
-        tTO           double {mustBeInteger, mustBePositive}
-        acc           double {mustBeVector}
-        vel           double {mustBeVector}
-        g             double
-    end
-
-    P = [ zeros(t0, 1); (acc(t0:tTO)+g).*vel(t0:tTO) ];
-
-end
-
-
-function h = calcJumpHeight( tTO, vel, g )
-
-    h = 0.5*vel(tTO)^2/g;
-
-end
-
-
-function features = calcJumpFeatures( t0, tUB, tBP, tTO, acc, vel, pwr, fs )
-    % Calculate (almost) all jump features
-    % Code adapted from Beatrice de Lazzari
-    arguments
-        t0            double {mustBeInteger, mustBePositive}
-        tUB           double {mustBeInteger, mustBePositive}
-        tBP           double {mustBeInteger, mustBePositive}
-        tTO           double {mustBeInteger, mustBePositive}
-        acc           double {mustBeVector}
-        vel           double {mustBeVector}
-        pwr           double {mustBeVector}
-        fs            double
-    end
-
-    % -- A -- %
-    A = (tUB - t0)/fs;
-    
-    % -- b -- %
-    b = min(acc( t0:tBP ));
-    
-    % -- C -- %
-    [~, a_min] = min(acc(t0 : tBP));
-    [~, a_max] = max(acc(t0 : tTO));
-    C = (a_max - a_min)/fs;
-    
-    % -- D -- %
-    F0 = find( acc(tUB:tTO)>=0, 1, 'last' ) + tUB;
-    D = (F0 - tUB)/fs;
-    
-    % -- e -- %
-    e = max(acc( t0:tTO ));
-    
-    % -- F -- %
-    F = (tTO - a_max)/fs;
-    
-    % -- G -- %
-    G = (tTO - t0)/fs;
-    
-    % -- H -- %
-    H = (tBP - a_min)/fs; 
-    
-    % -- i -- %
-    tilt = diff(acc( a_min:a_max + 1));
-    [~, tilt_max] = max( tilt );
-    if isempty(tilt_max)
-        tilt_max = 0;
-    end
-    i = acc(t0 + a_min + tilt_max);
-    
-    % -- J -- %
-    [~, v_min] = min( vel(1:tBP) );
-    J = (tBP - v_min)/fs;
-    
-    % -- k -- %
-    k1 = acc( tBP );
-    
-    % -- l -- %
-    l = min(pwr( tUB:tBP ));
-    
-    % -- M -- %
-    pwrIdx = find( pwr(tBP+3:end)<0, 1 );
-    if isempty( pwrIdx )
-        P0 = length(pwr);
-    else
-        P0 = pwrIdx + tBP + 1;
-    end
-    M = (P0 - tBP) / fs;
-    
-    % -- n -- %
-    n = max(pwr);
-    
-    % -- O -- %
-    [~, P_max] = max(pwr);
-    O = (tTO - P_max) / fs;
-    
-    % -- p -- %
-    p = (e - b) / C;
-    
-    % -- q -- %
-    time = linspace(0, (F0 - tUB) / fs, (F0 - tUB));
-    shape = trapz(time, acc(tUB : F0 - 1));
-    q = shape / (D*e);
-    
-    % -- r -- %
-    r = b / e; 
-    
-    % -- s -- %
-    [~, v_max] = max(vel);
-    s = min(vel( 1:v_max ));
-    
-    % -- z -- %
-    z = mean(pwr( t0:tBP ));
-    
-    % -- u -- %
-    u = mean(pwr( tBP:tTO ));
-    
-    % -- W -- %
-    [~, P_min] = min(pwr( 1:P_max ));
-    W = (P_max - P_min)/fs;
-    
-    % assemble features array 
-    features = [A, b, C, D, e, F, G, H, i, J, k1, l, M, n, O, p, q, r, s, u, W, z];
 
 end
 

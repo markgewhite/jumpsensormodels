@@ -34,7 +34,7 @@ for i = testIndices
     switch i
     
         case 1
-            name = 'SamplingTest1';
+            name = 'SamplingTest2';
             setup.model.args.ModelType = 'Linear';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
 
@@ -56,7 +56,7 @@ for i = testIndices
             myInvestigation{i}.aggregateResults( 4 );
                 
         case 2
-            name = 'ContAlignTest1';
+            name = 'ContAlignTest2';
             setup.model.args.EncodingType = 'Continuous';
             setup.model.args.ModelType = 'Linear';
 
@@ -74,7 +74,7 @@ for i = testIndices
             myInvestigation{i}.run;
 
         case 3
-            name = 'ModelTest1';
+            name = 'ModelTest2';
             setup.model.args.EncodingType = 'Continuous';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
 
@@ -93,8 +93,8 @@ for i = testIndices
 
         case 4
             name = 'VerificationTest1';
-            setup.model.args.ModelType = 'Linear';
-            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
+            setup.model.args.ModelType = 'LinearReg';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffDiscrete';
             setup.model.args.DiscreteEncodingArgs.LegacyCode = false;
 
             setup.eval.KFoldRepeats = 1;

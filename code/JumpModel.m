@@ -60,18 +60,18 @@ classdef JumpModel < handle
 
                     if isfield( args, 'DiscreteEncodingArgs' )
                         encodingArgs = namedargs2cell( args.DiscreteEncodingArgs );
-                        self.EncodingStrategy = DiscreteEncodingStrategy( encodingArgs{:} );
+                        self.EncodingStrategy = DiscreteEncodingStrategy( thisDataset.SampleFreq, encodingArgs{:} );
                     else
-                        self.EncodingStrategy = DiscreteEncodingStrategy;
+                        self.EncodingStrategy = DiscreteEncodingStrategy( thisDataset.SampleFreq );
                     end
 
                 case 'Continuous'
 
                     if isfield( args, 'ContinuousEncodingArgs' )
                         encodingArgs = namedargs2cell( args.ContinuousEncodingArgs );
-                        self.EncodingStrategy = FPCAEncodingStrategy( encodingArgs{:} );
+                        self.EncodingStrategy = FPCAEncodingStrategy( thisDataset.SampleFreq, encodingArgs{:} );
                     else
-                        self.EncodingStrategy = FPCAEncodingStrategy;
+                        self.EncodingStrategy = FPCAEncodingStrategy( thisDataset.SampleFreq );
                     end
                     
             end
@@ -174,7 +174,7 @@ classdef JumpModel < handle
             eval.RMSE = eval.StdRMSE*self.YStd;
 
             % F-statistic (if linear)
-            if ismember( self.ModelType, {'Linear', 'LinearReg'} )
+            if strcmp( self.ModelType, 'Linear' )
                 eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
                 eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;
                 eval.RSquared = self.Model.Rsquared.Ordinary;

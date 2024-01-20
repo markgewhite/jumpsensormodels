@@ -18,9 +18,10 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
     methods
 
-        function self = FPCAEncodingStrategy( args )
+        function self = FPCAEncodingStrategy( samplingFreq, args )
             % Initialize the model
-            arguments 
+            arguments
+                samplingFreq            double
                 args.NumComponents      double ...
                     {mustBeInteger, mustBePositive} = 3
                 args.BasisOrder         double ...
@@ -34,7 +35,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 args.AlignmentMethod    char ...
                     {mustBeMember( args.AlignmentMethod, ...
                         {'XCRandom', 'XCMeanConv', ...
-                         'LMTakeoff', 'LMLanding' })} = 'XCRandom'
+                         'LMTakeoff', 'LMLanding', 'LMTakeoffDiscrete' })} = 'XCRandom'
                 args.AlignmentTolerance double ...
                     {mustBePositive} = 5E-2
                 args.ShowConvergence    logical = false
@@ -46,7 +47,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 throwAsCaller( MException(eid, msg) );
             end
 
-            self = self@EncodingStrategy;
+            self = self@EncodingStrategy( samplingFreq );
 
             self.NumComponents = args.NumComponents;
             self.BasisOrder = args.BasisOrder;
@@ -157,10 +158,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                                                    self.AlignmentTolerance, ...
                                                    self.ShowConvergence );
 
-                case {'LMTakeoff', 'LMLanding'}
-                    XAligned = landmarkAlignment( X, ...
-                                        landmark = self.AlignmentMethod, ...
-                                        samplefreq = freq );
+                case {'LMTakeoff', 'LMLanding', 'LMTakeoffDiscrete'}
+                    XAligned = self.landmarkAlignment( X  );
 
 
             end
@@ -182,9 +181,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                                                Reference = 'Specified', ...
                                                RefSignal = self.AlignmentSignal );
 
-                case {'LMTakeoff', 'LMLanding'}
-                    XAligned = landmarkAlignment( X, ...
-                                        landmark = self.AlignmentMethod );
+                case {'LMTakeoff', 'LMLanding', 'LMTakeoffDiscrete'}
+                    XAligned = self.landmarkAlignment( X );
 
             end
 
@@ -213,6 +211,53 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         
             % create the smooth functions from the original data
             XFd = smooth_basis( tSpan, X, FdParams );
+        
+        end
+
+
+        function [ alignedX, offsets ] = landmarkAlignment( self, X )
+            % Align X series using a given landmark
+            arguments
+                self                FPCAEncodingStrategy
+                X                   double
+            end
+        
+            [sigLength, numSignals, numDim] = size( X );
+            
+            % shift dimensions
+            X = permute( X, [1 3 2] );
+
+            % initializes
+            alignedX = zeros( sigLength, numDim, numSignals );
+            offsets = zeros( numSignals, 1 );
+            refIdx = fix( size(X,1)/2 );
+        
+            for i = 1:numSignals
+            
+                lmIdx= findLandmark( squeeze(X(:,:,i)), ...
+                                     self.AlignmentMethod, ...
+                                     self.SamplingFreq );
+        
+                if lmIdx > 0
+                    % Adjust the signal based on the offset. This is a simple shift.
+                    offsets(i) = refIdx - lmIdx;
+                    if offsets(i) > 0
+                        alignedX(:,:,i) = [X(1,:,i).*ones(offsets(i), numDim); 
+                                           X(1:end-offsets(i),:,i)];
+                    elseif offsets(i) < 0
+                        alignedX(:,:,i) = [X(-offsets(i):end, :, i); 
+                                           X(end,:,i).*ones(-offsets(i)-1, numDim)];
+                    else
+                        alignedX(:,:,i) = X(:,:,i);
+                    end
+                else
+                    alignedX(:,:,i) = X(:,:,i);
+                end
+        
+            end
+        
+            % shift back
+            alignedX = permute( alignedX, [1 3 2] );
         
         end
 
@@ -338,61 +383,44 @@ function [lagDiff, cBest] = computeOffset( reference, target )
 end
 
 
-function [ alignedX, offsets ] = landmarkAlignment( X, args )
-    % Align X series using a given landmark
+function offset = findLandmark( X, landmark, fs )
+    % Find the specified landmark in the time series
     arguments
         X                   double
-        args.Landmark       string ...
-                    {mustBeMember( args.Landmark, ...
-                             {'LMTakeoff', 'LMLanding'})} = 'LMTakeoff'
-        args.SampleFreq     double = 100
+        landmark            string
+        fs                  double
     end
 
-    [sigLength, numSignals, numDim] = size( X );
-    
-    % shift dimensions
-    X = permute( X, [1 3 2] );
-
-    % add some smoothing
-    Z = squeeze(movmean( X, fix(0.5*args.SampleFreq), 1 ));
-
-    % initializes
-    alignedX = zeros( sigLength, numDim, numSignals );
-    offsets = zeros( numSignals, 1 );
-    refIdx = fix( size(Z,1)/2 );
-
-    for i = 1:numSignals
-    
-        lmIdx= findLandmark( Z(:,i), args.Landmark );
-
-        if lmIdx > 0
-            % Adjust the signal based on the offset. This is a simple shift.
-            offsets(i) = refIdx - lmIdx;
-            if offsets(i) > 0
-                alignedX(:,:,i) = [X(1,:,i).*ones(offsets(i), numDim); 
-                                   X(1:end-offsets(i),:,i)];
-            elseif offsets(i) < 0
-                alignedX(:,:,i) = [X(-offsets(i):end, :, i); 
-                                   X(end,:,i).*ones(-offsets(i)-1, numDim)];
-            else
-                alignedX(:,:,i) = X(:,:,i);
-            end
-        else
-            alignedX(:,:,i) = X(:,:,i);
-        end
-
+    switch landmark
+        case {'LMTakeoff', 'LMLanding'}
+            offset = findLandmarkStandard( X, landmark, fs );
+        case 'LMTakeoffDiscrete'
+            offset = findLandmarkDiscreteMethod( X, fs );
+        otherwise
+            offset = 0;
     end
 
-    % shift back
-    alignedX = permute( alignedX, [1 3 2] );
+    plot( X );
+    hold on;
+    plot( offset, X(offset), 'o' );
+    hold off;
 
 end
 
 
-function offset = findLandmark( Z, landmark )
+function offset = findLandmarkStandard( acc, landmark, fs )
+    % Find the landmarks using "standard" class methods
+    arguments
+        acc                 double
+        landmark            string
+        fs                  double
+    end
 
+    % add limited smoothing
+    accSmth = squeeze(movmean( acc, fix(0.5*fs), 1 ));
+    
     % find all peaks with a minimum separation
-    [~, pkIdx, ~, pkProm] = findpeaks( Z, MinPeakDistance=25 );
+    [~, pkIdx, ~, pkProm] = findpeaks( accSmth, MinPeakDistance=25 );
 
     % find the two most prominent
     [~, sortIdx] = sort( -pkProm );
@@ -402,14 +430,36 @@ function offset = findLandmark( Z, landmark )
             offset = min( pkIdx( sortIdx(1:2) ) );
         case 'LMLanding'
             offset = max( pkIdx( sortIdx(1:2) ) );
-        otherwise
-            offset = 0;
     end
 
-    plot( Z );
-    hold on;
-    plot( offset, Z(offset), 'o' );
-    hold off;
+end
+
+
+function tTO = findLandmarkDiscreteMethod( acc, fs )
+    % Find takeoff using the discrete method
+    % This code is an abbreviated version of that in
+    % DiscreteEncodingStrategy
+    arguments
+        acc         double
+        fs          double
+    end
+
+    % setup the default discrete encoding
+    thisEncoding = DiscreteEncodingStrategy( fs );
+
+    % find the onset time
+    t0 = thisEncoding.findStartTime( acc );
+
+    % compute the velocity time series
+    vel = thisEncoding.calcVelCurve( t0, acc );
+
+    % find takeoff time
+    [~, ~, tTO] = thisEncoding.findOtherTimes( acc, vel );
+
+    % remove the object from memory
+    delete( thisEncoding );
 
 end
+
+
 

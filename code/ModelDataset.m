@@ -195,7 +195,9 @@ classdef ModelDataset < handle
             thisSubset.XLen = self.XLen( idx );
             thisSubset.Y = self.Y( idx );
             thisSubset.SubjectID = self.SubjectID( idx );
-            thisSubset.ReferenceIdx = self.ReferenceIdx( idx );
+            if ~isempty( self.ReferenceIdx )
+                thisSubset.ReferenceIdx = self.ReferenceIdx( idx );
+            end
             thisSubset.VMD = self.VMD( idx, : );
     
         end

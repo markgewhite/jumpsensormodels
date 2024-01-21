@@ -80,7 +80,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             self.Length = size( X, 1 );
 
             % align the curves, setting alignment
-            XAligned = self.setCurveAlignment( X, thisDataset.SampleFreq );
+            XAligned = self.setCurveAlignment( X );
 
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );
@@ -138,12 +138,11 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     methods (Access = private)
 
 
-        function XAligned = setCurveAlignment( self, X, freq )
+        function XAligned = setCurveAlignment( self, X )
             % Set curve alignment when fitting
             arguments
                 self            FPCAEncodingStrategy
                 X               double
-                freq            double = 100
             end
 
             switch self.AlignmentMethod
@@ -399,11 +398,6 @@ function offset = findLandmark( X, landmark, fs )
         otherwise
             offset = 0;
     end
-
-    plot( X );
-    hold on;
-    plot( offset, X(offset), 'o' );
-    hold off;
 
 end
 

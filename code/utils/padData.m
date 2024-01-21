@@ -7,7 +7,7 @@ function XP = padData( X, args )
         args.Longest    logical = false  % whether to pad to the longest
         args.Same       logical = false  % whether to pad with same value
         args.Location     char {mustBeMember( args.Location, ...
-            {'Left', 'Right', 'Both', 'Symmetric'} )} = 'Left' % padding location
+            {'Left', 'Right', 'Both'} )} = 'Left' % padding location
     end
     
     len = cellfun( @length, X );
@@ -29,7 +29,8 @@ function XP = padData( X, args )
             XP( :, i, : ) = X{i};
 
         else
-            trialLen = min( [ size(X{i}, 1), padLen] );
+            actualLen = size(X{i}, 1);
+            trialLen = min( [ actualLen, padLen] );
         
             if args.Same
                 xStart = X{i}(1,:);
@@ -45,28 +46,28 @@ function XP = padData( X, args )
                     % insert padding at the beginning
                     padLeft = ones( padLen-trialLen, 1 )*xStart;
                     padRight = [];
+                    startIdx = actualLen - trialLen+1;
+                    endIdx = actualLen;
         
                 case 'Right'
                     % insert padding at the end
                     padLeft = [];
                     padRight = ones( padLen-trialLen, 1 )*xEnd;
+                    startIdx = 1;
+                    endIdx = trialLen;
         
                 case 'Both'
                     % insert padding at both ends, roughly evenly
                     startLen = fix( (padLen-trialLen)/2 );
                     padLeft = ones( startLen, 1 )*xStart;
                     padRight = ones( padLen-trialLen-startLen, 1 )*xEnd;
-        
-                case 'Symmetric'
-                    % insert padding at both ends as mirror image of opposite end
-                    startLen = fix( (padLen-trialLen)/2 );
-                    padLeft = X{i}( end-startLen+1:end, : );
-                    padRight = X{i}( 1:startLen, : );
-    
+                    startIdx = startLen;
+                    endIdx = actualLen - startLen+1;
+
             end
     
             XP( :, i, : ) = [ padLeft; ...
-                                X{i}(end - trialLen+1:end, :); ...
+                                X{i}(startIdx:endIdx, :); ...
                                   padRight ];
 
         end

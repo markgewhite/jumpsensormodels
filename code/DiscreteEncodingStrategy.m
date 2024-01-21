@@ -205,7 +205,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                     threshold = self.Onset.SDDetectionThreshold*std( accFilt(window) );
         
             end
-        
+
             % now make the final detection using threshold
             detectIdx = find( abs(accFilt)>threshold, 1 );
             if isempty( detectIdx )

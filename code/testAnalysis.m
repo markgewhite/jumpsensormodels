@@ -2,7 +2,8 @@
 
 clear;
 
-testIndices = 4;
+testIndices = 1:3;
+catchErrors = true;
 
 % -- data setup --
 setup.data.class = @DelsysDataset;
@@ -14,6 +15,7 @@ setup.model.class = @JumpModel;
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;
 setup.eval.KFoldRepeats = 5;
+setup.eval.RandomSeed = 1234;
 setup.eval.InParallel = false;
 
 % results location
@@ -49,14 +51,14 @@ for i = testIndices
                       {'Continuous', 'Discrete'}, ...
                       1:10};
             
-            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             
             myInvestigation{i}.run;
 
             myInvestigation{i}.aggregateResults( 4 );
                 
         case 2
-            name = 'ContAlignTest2';
+            name = 'ContAlignTest3';
             setup.model.args.EncodingType = 'Continuous';
             setup.model.args.ModelType = 'Linear';
 
@@ -67,9 +69,9 @@ for i = testIndices
                            "model.args.ContinuousEncodingArgs.AlignmentMethod"];
             values = { 2:2:16, ...
                        {@SmartphoneDataset, @DelsysDataset}, ...
-                       {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding'} };
+                       {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding', 'LMTakeoffDiscrete'} };
             
-            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             
             myInvestigation{i}.run;
 
@@ -87,7 +89,7 @@ for i = testIndices
                        {@SmartphoneDataset, @DelsysDataset}, ...
                        {'Linear', 'LinearReg', 'SVM', 'XGBoost'} };
             
-            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             
             myInvestigation{i}.run;
 
@@ -101,14 +103,12 @@ for i = testIndices
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType" ];
-            values = {{@SmartphoneDataset, @DelsysDataset}, ...
-                      {'Discrete', 'Continuous'}};
+            values = {{@SmartphoneDataset}, ...
+                      {'Continuous', 'Discrete'}};
             
             myInvestigation{i} = Investigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
-
-            myInvestigation{i}.aggregateResults( 4 );
 
     end
 

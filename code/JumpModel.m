@@ -158,7 +158,7 @@ classdef JumpModel < handle
             end
         
             % generate the encoding
-            Z = self.EncodingStrategy.extractFeatures( thisDataset );
+            [ Z, offsets] = self.EncodingStrategy.extractFeatures( thisDataset );
             stdZ = (Z - self.ZMean)./self.ZStd;
 
             % get the ground truth
@@ -172,6 +172,10 @@ classdef JumpModel < handle
 
             % re-scaled loss
             eval.RMSE = eval.StdRMSE*self.YStd;
+
+            % store the offsets
+            eval.OffsetSD = std( offsets );
+            eval.OffsetSDRatio = eval.OffsetSD/std(thisDataset.ReferenceIdx);
 
             % F-statistic (if linear)
             if strcmp( self.ModelType, 'Linear' )

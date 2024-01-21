@@ -2,18 +2,20 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     % Class for features based on functional principal component analysis
 
     properties
-        NumComponents   % number of principal components
-        Length          % fixed length for encoding
-        BasisOrder      % basis function order
-        PenaltyOrder    % roughness penalty order
-        Lambda          % roughness penalty
-        MeanFd          % mean curve as a functional data object
-        CompFd          % component curves as functional data objects
-        AlignmentMethod % method for aligning signals prior to PCA
-        AlignmentSignal % reference signal for alignment
-        AlignmentTolerance % alignment variance tolerance
-        ShowConvergence % show plots and variance of alignement convergence
-        Fitted          % flag whether the model has been fit
+        NumComponents       % number of principal components
+        Length              % fixed length for encoding
+        BasisOrder          % basis function order
+        PenaltyOrder        % roughness penalty order
+        Lambda              % roughness penalty
+        MeanFd              % mean curve as a functional data object
+        CompFd              % component curves as functional data objects
+        AlignmentMethod     % method for aligning signals prior to PCA
+        AlignmentSignal     % reference signal for alignment
+        AlignmentTolerance  % alignment variance tolerance
+        ShowConvergence     % show plots and variance of alignement convergence
+        Fitted              % flag whether the model has been fit
+        FittedAlignmentIdx  % fitted alignment indices for training data
+        RefAlignmentIdx     % ground truth alignment indices for reference
     end
 
     methods
@@ -35,7 +37,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 args.AlignmentMethod    char ...
                     {mustBeMember( args.AlignmentMethod, ...
                         {'XCRandom', 'XCMeanConv', ...
-                         'LMTakeoff', 'LMLanding', 'LMTakeoffDiscrete' })} = 'XCRandom'
+                         'LMTakeoff', 'LMLanding', ...
+                         'LMTakeoffDiscrete', ...
+                         'LMTakeoffActual' })} = 'XCRandom'
                 args.AlignmentTolerance double ...
                     {mustBePositive} = 5E-2
                 args.ShowConvergence    logical = false
@@ -71,16 +75,12 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 thisDataset         ModelDataset
             end
 
-            % convert to padded array
-            X = padData( thisDataset.Acc, ...
-                         Longest = true, ...
-                         Same = true, ...
-                         Location = 'Right' );
-
-            self.Length = size( X, 1 );
-
             % align the curves, setting alignment
-            XAligned = self.setCurveAlignment( X );
+            XAligned = self.setCurveAlignment( thisDataset );
+
+            if isempty( XAligned )
+                error('No alignment data.');
+            end
 
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );
@@ -97,7 +97,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         end
 
 
-        function Z = extractFeatures( self, thisDataset )
+        function [ Z, offsets ] = extractFeatures( self, thisDataset )
             % Compute the features using the fitted model
             arguments
                 self                FPCAEncodingStrategy
@@ -109,14 +109,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 return
             end
 
-            % convert to padded array
-            X = padData( thisDataset.Acc, ...
-                         PadLen = self.Length, ...
-                         Same = true, ...
-                         Location = 'Right' );
-
             % align the curves
-            XAligned = self.alignCurves( X );
+            [ XAligned, offsets ] = self.alignCurves( thisDataset );
 
             % create the functional representation
             XFd = self.funcSmoothData( XAligned );
@@ -138,50 +132,72 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     methods (Access = private)
 
 
-        function XAligned = setCurveAlignment( self, X )
+        function XAligned = setCurveAlignment( self, thisDataset )
             % Set curve alignment when fitting
             arguments
                 self            FPCAEncodingStrategy
-                X               double
+                thisDataset     ModelDataset
             end
 
+            % convert to padded array
+            X = padData( thisDataset.Acc, ...
+                         Longest = true, ...
+                         Same = true, ...
+                         Location = 'Right' );
+            self.Length = size( X, 1 );
+
+            % align arrays
             switch self.AlignmentMethod
 
                 case 'XCRandom'
-                    [XAligned, self.AlignmentSignal] = ...
+                    [XAligned, self.AlignmentSignal, self.FittedAlignmentIdx] = ...
                                 xcorrAlignment( X, Reference = 'Random' );
 
                 case 'XCMeanConv'
-                    [XAligned, self.AlignmentSignal ] = ...
+                    [XAligned, self.AlignmentSignal, self.FittedAlignmentIdx ] = ...
                                 iteratedAlignment( X, ...
                                                    self.AlignmentTolerance, ...
                                                    self.ShowConvergence );
 
-                case {'LMTakeoff', 'LMLanding', 'LMTakeoffDiscrete'}
-                    XAligned = self.landmarkAlignment( X  );
-
+                case {'LMTakeoff', 'LMLanding', ...
+                        'LMTakeoffDiscrete', 'LMTakeoffActual'}
+                    [XAligned, self.FittedAlignmentIdx] = ...
+                                self.landmarkAlignment( X, ...
+                                                        thisDataset.ReferenceIdx );
 
             end
+
+            % store reference values
+            self.RefAlignmentIdx = thisDataset.ReferenceIdx;
 
         end
 
 
-        function XAligned = alignCurves( self, X )
+        function [ XAligned, offsets ] = alignCurves( self, thisDataset )
             % Align the curves by chosen method
             arguments
                 self            FPCAEncodingStrategy
-                X               double
+                thisDataset     ModelDataset
             end
 
+            % convert to padded array
+            X = padData( thisDataset.Acc, ...
+                         PadLen = self.Length, ...
+                         Same = true, ...
+                         Location = 'Right' );
+
+            % perform alignment using fitted reference
             switch self.AlignmentMethod
 
                 case {'XCRandom', 'XCMeanConv'}
-                    XAligned = xcorrAlignment( X, ...
+                    [ XAligned, ~, offsets ] = xcorrAlignment( X, ...
                                                Reference = 'Specified', ...
                                                RefSignal = self.AlignmentSignal );
 
-                case {'LMTakeoff', 'LMLanding', 'LMTakeoffDiscrete'}
-                    XAligned = self.landmarkAlignment( X );
+                case {'LMTakeoff', 'LMLanding', ...
+                        'LMTakeoffDiscrete', 'LMTakeoffActual'}
+                    [ XAligned, offsets ] = self.landmarkAlignment( X, ...
+                                               thisDataset.ReferenceIdx );
 
             end
 
@@ -214,11 +230,12 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         end
 
 
-        function [ alignedX, offsets ] = landmarkAlignment( self, X )
+        function [ alignedX, offsets, lmIdx ] = landmarkAlignment( self, X, refIdx )
             % Align X series using a given landmark
             arguments
                 self                FPCAEncodingStrategy
                 X                   double
+                refIdx              double
             end
         
             [sigLength, numSignals, numDim] = size( X );
@@ -226,20 +243,19 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             % shift dimensions
             X = permute( X, [1 3 2] );
 
-            % initializes
+            % initialization
             alignedX = zeros( sigLength, numDim, numSignals );
             offsets = zeros( numSignals, 1 );
-            refIdx = fix( size(X,1)/2 );
+            lmIdx = zeros( numSignals, 1 );
+            halfWidthIdx = fix( size(X,1)/2 );
         
             for i = 1:numSignals
             
-                lmIdx= findLandmark( squeeze(X(:,:,i)), ...
-                                     self.AlignmentMethod, ...
-                                     self.SamplingFreq );
+                lmIdx(i) = self.findLandmark( squeeze(X(:,:,i)), refIdx(i) );
         
-                if lmIdx > 0
+                if lmIdx(i) > 0
                     % Adjust the signal based on the offset. This is a simple shift.
-                    offsets(i) = refIdx - lmIdx;
+                    offsets(i) = halfWidthIdx - lmIdx(i);
                     if offsets(i) > 0
                         alignedX(:,:,i) = [X(1,:,i).*ones(offsets(i), numDim); 
                                            X(1:end-offsets(i),:,i)];
@@ -260,12 +276,39 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         
         end
 
+
+        function offset = findLandmark( self, X, refIdx )
+            % Find the specified landmark in the time series
+            arguments
+                self                FPCAEncodingStrategy
+                X                   double
+                refIdx              double
+            end
+        
+            switch self.AlignmentMethod
+                case {'LMTakeoff', 'LMLanding'}
+                    offset = findLandmarkStandard( X, ...
+                                                   self.AlignmentMethod, ...
+                                                   self.SamplingFreq );
+                case 'LMTakeoffDiscrete'
+                    offset = findLandmarkDiscreteMethod( X, ...
+                                                         self.SamplingFreq );
+
+                case 'LMTakeoffActual'
+                    offset = refIdx;
+
+                otherwise
+                    offset = 0;
+            end
+        
+        end
+
     end
 
 end
 
 
-function [XAligned, alignmentSignal ] = iteratedAlignment( X, tol, verbose )
+function [XAligned, alignmentSignal, alignmentIdx ] = iteratedAlignment( X, tol, verbose )
     % Iterate curve alignment using the mean curve
     arguments
         X           double
@@ -284,7 +327,8 @@ function [XAligned, alignmentSignal ] = iteratedAlignment( X, tol, verbose )
     XAligned = X;
 
     while ~converged && i<10
-        [XAligned, alignmentSignal] = xcorrAlignment( XAligned, Reference = 'Mean' );
+        [XAligned, alignmentSignal, alignmentIdx] = ...
+                            xcorrAlignment( XAligned, Reference = 'Mean' );
 
         XVar = var(permute(XAligned, [1 3 2]), [], 3);
         XMeanVar = mean( XVar, 'all' );
@@ -378,26 +422,6 @@ function [lagDiff, cBest] = computeOffset( reference, target )
     [c, lags] = xcorr( reference, target ); 
     [cBest, I] = max(abs(c));
     lagDiff = lags(I);
-
-end
-
-
-function offset = findLandmark( X, landmark, fs )
-    % Find the specified landmark in the time series
-    arguments
-        X                   double
-        landmark            string
-        fs                  double
-    end
-
-    switch landmark
-        case {'LMTakeoff', 'LMLanding'}
-            offset = findLandmarkStandard( X, landmark, fs );
-        case 'LMTakeoffDiscrete'
-            offset = findLandmarkDiscreteMethod( X, fs );
-        otherwise
-            offset = 0;
-    end
 
 end
 

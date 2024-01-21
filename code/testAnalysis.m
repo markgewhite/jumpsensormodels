@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 1:3;
+testIndices = 4;
 catchErrors = true;
 
 % -- data setup --
@@ -69,7 +69,8 @@ for i = testIndices
                            "model.args.ContinuousEncodingArgs.AlignmentMethod"];
             values = { 2:2:16, ...
                        {@SmartphoneDataset, @DelsysDataset}, ...
-                       {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding', 'LMTakeoffDiscrete'} };
+                       {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding', ...
+                        'LMTakeoffDiscrete', 'LMTakeoffActual'} };
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             
@@ -96,14 +97,14 @@ for i = testIndices
         case 4
             name = 'VerificationTest1';
             setup.model.args.ModelType = 'LinearReg';
-            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffDiscrete';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffActual';
             setup.model.args.DiscreteEncodingArgs.LegacyCode = false;
 
             setup.eval.KFoldRepeats = 1;
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType" ];
-            values = {{@SmartphoneDataset}, ...
+            values = {{@DelsysDataset}, ...
                       {'Continuous', 'Discrete'}};
             
             myInvestigation{i} = Investigation( name, path, parameters, values, setup );

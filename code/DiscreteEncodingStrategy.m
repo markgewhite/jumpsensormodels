@@ -69,7 +69,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
         end
 
 
-        function Z = extractFeatures( self, thisDataset )
+        function [ Z, takeoffIdx ] = extractFeatures( self, thisDataset )
             % Compute the features 
             arguments
                 self                DiscreteEncodingStrategy
@@ -84,6 +84,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
             % compute features for one observations at a time
             Z = zeros( numObs, 23 + numNodes );
+            takeoffIdx = zeros( numObs, 1 );
             for i = 1:numObs
                 
                 % setup plot, if required
@@ -149,6 +150,9 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                           '; tTO = ' num2str(tTO) ...
                           '; ' msg] );
                 end
+
+                % store for reference
+                takeoffIdx(i) = tTO;
 
             end
 

@@ -29,16 +29,17 @@ classdef DelsysDataset < ModelDataset
                              'peakPower'} )} = 'peakPower'
             end
 
-            [ XRaw, Y, SubjectID ] = DelsysDataset.load( args.JumpType, ...
-                                                         args.Sensor, ...
-                                                         args.OutcomeVar );
+            [ XRaw, Y, SubjectID, takeoffIdx ] = ...
+                                    DelsysDataset.load( args.JumpType, ...
+                                                        args.Sensor, ...
+                                                        args.OutcomeVar );
 
             labels = { 'AccX', 'AccY', 'AccZ' };
 
             % process the data and complete the initialization
             superArgsCell = namedargs2cell( superArgs );
 
-            self = self@ModelDataset( XRaw, Y, SubjectID, ...
+            self = self@ModelDataset( XRaw, Y, SubjectID, takeoffIdx, ...
                                       superArgsCell{:}, ...
                                       Name = "Delsys Data", ...
                                       channelLabels = labels, ...
@@ -70,7 +71,7 @@ classdef DelsysDataset < ModelDataset
 
     methods (Static)
 
-        function [ XCell, Y, S ] = load( type, sensor, outcome )
+        function [ XCell, Y, S, idx ] = load( type, sensor, outcome )
 
             path = fileparts( which('DelsysDataset.m') );
             path = [path '/../data/'];
@@ -87,8 +88,7 @@ classdef DelsysDataset < ModelDataset
                     acc = reshape( delsysJumpData.acc(:,:,2)', [], 1 );
             end
             outcome = reshape( delsysJumpData.(outcome)', [], 1 );
-            %q = cellfun( @(x) sum(x,'all'), delsysJumpData.acc(:,:,1) );
-            %outcome = reshape( q', [], 1 );
+            takeoffIdx = reshape( delsysJumpData.takeoff', [], 1 );
 
             % setup the subject identities as numeric for now
             [numSubjects, numTrials] = size( delsysJumpData.type );        
@@ -109,6 +109,7 @@ classdef DelsysDataset < ModelDataset
             XCell = acc( selection );
             Y = outcome( selection );
             S = string(num2str( subjectIDs( selection ), 'S%02u' ));
+            idx = takeoffIdx( selection );
 
             % convert to the resultant
             XCell = cellfun( @(x) sqrt(sum(x.^2, 2)), XCell, ...

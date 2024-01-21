@@ -5,6 +5,7 @@ classdef ModelDataset < handle
         X               % time series as a cell array
         Y               % outcome array
         SubjectID       % subjects array
+        ReferenceIdx    % takeoff index rray
         XLen            % lengths of each series
         NumChannels     % number of X channels
         Name            % name of the dataset
@@ -36,7 +37,7 @@ classdef ModelDataset < handle
 
     methods
 
-        function self = ModelDataset( XRaw, Y, SubjectID, args )
+        function self = ModelDataset( XRaw, Y, SubjectID, referenceIdx, args )
             % Create and preprocess the data.
             % The calling function will be a data loader or
             % a function partitioning the data.
@@ -44,6 +45,7 @@ classdef ModelDataset < handle
                 XRaw                    cell
                 Y                       double
                 SubjectID               string
+                referenceIdx            double
                 args.Name               string
                 args.Instance           double {mustBePositive, mustBeInteger} = 1
                 args.ChannelLabels      string
@@ -75,6 +77,8 @@ classdef ModelDataset < handle
             % set properties
             self.Y = Y;
             self.SubjectID = SubjectID;
+            self.ReferenceIdx = referenceIdx;
+
             self.Name = args.Name;
             self.Instance = args.Instance;
             self.ChannelLabels = args.ChannelLabels;
@@ -191,6 +195,7 @@ classdef ModelDataset < handle
             thisSubset.XLen = self.XLen( idx );
             thisSubset.Y = self.Y( idx );
             thisSubset.SubjectID = self.SubjectID( idx );
+            thisSubset.ReferenceIdx = self.ReferenceIdx( idx );
             thisSubset.VMD = self.VMD( idx, : );
     
         end

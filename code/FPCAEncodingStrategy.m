@@ -248,6 +248,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             offsets = zeros( numSignals, 1 );
             lmIdx = zeros( numSignals, 1 );
             halfWidthIdx = fix( size(X,1)/2 );
+            if isempty( refIdx )
+                refIdx = lmIdx;
+            end
         
             for i = 1:numSignals
             
@@ -299,6 +302,10 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
                 otherwise
                     offset = 0;
+            end
+
+            if isempty( offset )
+                offset = 0;
             end
         
         end

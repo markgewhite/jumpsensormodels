@@ -62,7 +62,7 @@ for i = testIndices
             setup.model.args.EncodingType = 'Continuous';
             setup.model.args.ModelType = 'Linear';
 
-            setup.eval.KFoldRepeats = 25;
+            setup.eval.KFoldRepeats = 1;
 
             parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
                            "data.class", ...

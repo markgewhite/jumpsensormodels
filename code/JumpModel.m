@@ -238,7 +238,6 @@ classdef JumpModel < handle
 
                         % record the hyperparameters
                         eval.Epsilon = self.Model.Epsilon;
-                        eval.Lambda = self.Model.Lambda;
 
 
                 end

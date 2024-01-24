@@ -24,7 +24,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             % Initialize the model
             arguments
                 samplingFreq            double
-                args.Filtering          logical = false
+                args.Filtering          logical = true
                 args.FilterForStart     logical = true
                 args.IncludeHeight      logical = true
                 args.DetectionMethod        char ...

@@ -61,15 +61,13 @@ for i = testIndices
         case 2
             name = 'ContAlignTest3';
             setup.model.args.EncodingType = 'Continuous';
-            setup.model.args.ModelType = 'Linear';
+            setup.model.args.ModelType = 'Lasso';
 
-            setup.eval.KFoldRepeats = 1;
+            setup.eval.KFoldRepeats = 25;
 
-            parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
-                           "data.class", ...
-                           "model.args.ContinuousEncodingArgs.AlignmentMethod"];
-            values = { 2:2:16, ...
-                       {@SmartphoneDataset, @DelsysDataset}, ...
+            parameters = [ "data.class", ...
+                           "model.args.ContinuousEncodingArgs.AlignmentMethod" ];
+            values = { {@SmartphoneDataset, @DelsysDataset}, ...
                        {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding', ...
                         'LMTakeoffDiscrete', 'LMTakeoffActual'} };
             
@@ -80,13 +78,9 @@ for i = testIndices
         case 3
             name = 'ModelTest3';
             setup.model.args.EncodingType = 'Continuous';
-            setup.model.args.DiscreteEncodingArgs.Filtering = true;
-            setup.model.args.DiscreteEncodingArgs.FilterForStart = true;
-            setup.model.args.DiscreteEncodingArgs.IncludeHeight = true;
-            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffActual';
-            setup.model.args.ContinuousEncodingArgs.NumComponents = 16;
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
 
-            setup.eval.KFoldRepeats = 1;
+            setup.eval.KFoldRepeats = 25;
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType", ...
@@ -103,17 +97,12 @@ for i = testIndices
             name = 'VerificationTest1';
             setup.model.args.ModelType = 'XGBoost';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffActual';
-            setup.model.args.ContinuousEncodingArgs.NumComponents = 16;
-            setup.model.args.DiscreteEncodingArgs.LegacyCode = false;
-            setup.model.args.DiscreteEncodingArgs.Filtering = true;
-            setup.model.args.DiscreteEncodingArgs.FilterForStart = true;
-            setup.model.args.DiscreteEncodingArgs.IncludeHeight = true;
             
             setup.eval.KFoldRepeats = 1;
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType" ];
-            values = {{@DelsysDataset, @SmartphoneDataset}, ...
+            values = {{@SmartphoneDataset, @DelsysDataset}, ...
                       {'Discrete', 'Continuous'}};
             
             myInvestigation{i} = Investigation( name, path, parameters, values, setup );

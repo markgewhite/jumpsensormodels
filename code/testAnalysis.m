@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 2;
+testIndices = 4;
 catchErrors = true;
 
 % -- data setup --
@@ -96,18 +96,20 @@ for i = testIndices
 
         case 4
             name = 'VerificationTest1';
-            setup.model.args.ModelType = 'LinearReg';
+            setup.model.args.ModelType = 'Linear';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffActual';
             setup.model.args.DiscreteEncodingArgs.LegacyCode = false;
-
-            setup.eval.KFoldRepeats = 1;
+            setup.model.args.DiscreteEncodingArgs.Filtering = true;
+            setup.model.args.DiscreteEncodingArgs.FilterForStart = true;
+            
+            setup.eval.KFoldRepeats = 25;
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType" ];
             values = {{@DelsysDataset}, ...
-                      {'Continuous', 'Discrete'}};
+                      {'Discrete', 'Continuous'}};
             
-            myInvestigation{i} = Investigation( name, path, parameters, values, setup );
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
 

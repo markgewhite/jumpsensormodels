@@ -3,8 +3,9 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
     properties
         AccG            % acceleration due to gravity
+        Filtering       % whether acceleration has been low-pass filtered
         Onset           % jump onset detection parameters structure
-                        %    Filtering              if signal filtering first
+                        %    Filter                 if signal filtering first
                         %    DetectionMethod        how to detect movement
                         %    WindowMethod           where to locate window
                         %    SDDetectionThreshold   SD multiple factor
@@ -22,7 +23,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             % Initialize the model
             arguments
                 samplingFreq            double
-                args.Filtering          logical = true
+                args.Filtering          logical = false
+                args.FilterForStart     logical = true
                 args.DetectionMethod        char ...
                     {mustBeMember( args.DetectionMethod, ...
                         {'SDMultiple', 'Absolute'})} = 'SDMultiple'
@@ -43,7 +45,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             self.AccG = 9.80665;
 
             % set the jump onset parameters
-            self.Onset.Filtering = args.Filtering;
+            self.Filtering = args.Filtering;
+            self.Onset.Filter = args.FilterForStart;
             self.Onset.DetectionMethod = args.DetectionMethod;
             self.Onset.WindowMethod = args.WindowMethod;
             self.Onset.SDDetectionThreshold = args.SDDetectionThreshold;
@@ -78,7 +81,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
             numObs = thisDataset.NumObs;
             self.SamplingFreq = thisDataset.SampleFreq;
-            acc = thisDataset.Acc;
             vmd = thisDataset.VMD;
             numNodes = thisDataset.VMDParams.NumModes;
 
@@ -101,7 +103,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                     try
                         % check with original code
                         [stack, data, times] = ...
-                            get_features_GPL_CMJ(acc{i}, self.SamplingFreq, 0);
+                            get_features_GPL_CMJ(thisDataset.Acc{i}, self.SamplingFreq, 0);
                     catch
                         disp(['Legacy code error: row = ' num2str(i)]);
                         times = NaN;
@@ -110,29 +112,41 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                     times = NaN;
                 end
 
+                if self.Filtering
+                    acc = bwfilt(thisDataset.Acc{i}, 6, self.SamplingFreq, 50, 'low');
+                else
+                    acc = thisDataset.Acc{i};
+                end
+
                 % find the jump start
-                t0 = self.findStartTime( acc{i} );
+                if self.Onset.Filter
+                    t0 = self.findStartTime( acc );
+                else
+                    t0 = self.findStartTime( thisDataset.Acc{i} );
+                end
 
                 % compute the velocity time series
-                vel = self.calcVelCurve( t0, acc{i} );
+                vel = self.calcVelCurve( t0, acc );
 
                 % find time UB
-                [tUB, tBP, tTO] = self.findOtherTimes( acc{i}, vel );
+                [tUB, tBP, tTO] = self.findOtherTimes( acc, vel );
 
                 % compute the power time series
-                pwr  = self.calcPwrCurve( t0, tTO, acc{i}, vel );
+                pwr  = self.calcPwrCurve( t0, tTO, acc, vel );
 
                 % calculate the jump height
                 h = self.calcJumpHeight( tTO, vel );
 
                 % calculate jump features
                 featuresJump = self.calcJumpFeatures( t0, tUB, tBP, tTO, ...
-                                                    acc{i}, vel, pwr );
+                                                      acc, vel, pwr );
                 % perform VMD
                 featuresVMD = vmd( i, : );
 
                 % assemble features vector
                 Z( i, : ) = [round(100*h) featuresJump featuresVMD];
+
+                %disp(['i = ' num2str(i) '; ' num2str(featuresJump)]);
 
                 % plot the timing points, if required
                 if self.PlotTimePts
@@ -167,12 +181,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 acc             double {mustBeVector}
             end
         
-            if self.Onset.Filtering
-                accFilt = bwfilt(acc, 6, self.SamplingFreq, 50, 'low');
-            else
-                accFilt = acc;
-            end
-        
             % determine the acceleration threshold for detecting the jump
             switch self.Onset.DetectionMethod
         
@@ -192,7 +200,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                         case 'Dynamic'
                             % locate the window close to the jump
                             % use a coarse detection threshold
-                            detectIdx = find( abs(accFilt)>self.Onset.AccDetectionThreshold, 1 );
+                            detectIdx = find( abs(acc)>self.Onset.AccDetectionThreshold, 1 );
                             if isempty( detectIdx )
                                 eid = 'Dynamic:NotDetected';
                                 msg = ['Jump not detected with AccDetectionThreshold = ' ...
@@ -206,12 +214,12 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
         
                     end
                     % now calculate the threshold using the defined window
-                    threshold = self.Onset.SDDetectionThreshold*std( accFilt(window) );
+                    threshold = self.Onset.SDDetectionThreshold*std( acc(window) );
         
             end
 
             % now make the final detection using threshold
-            detectIdx = find( abs(accFilt)>threshold, 1 );
+            detectIdx = find( abs(acc)>threshold, 1 );
             if isempty( detectIdx )
                 eid = 'Final:NotDetected';
                 msg = ['Jump not detected with threshold = ' num2str(threshold)];

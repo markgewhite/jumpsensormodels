@@ -136,7 +136,7 @@ classdef JumpModel < handle
             end
         
             [self.Loss.Training, self.Y.Training, self.YHat.Training] = ...
-                self.evaluateSet( self, thisTrnSet );
+                self.evaluateSet( self, thisTrnSet, true );
         
             if thisValSet.NumObs > 0
                 [self.Loss.Validation, self.Y.Validation, self.YHat.Validation] = ...
@@ -150,11 +150,12 @@ classdef JumpModel < handle
     
     methods (Static)
 
-        function [eval, stdY, stdYHat] = evaluateSet( self, thisDataset )
+        function [eval, stdY, stdYHat] = evaluateSet( self, thisDataset, extras )
             % Evaluate the model with a specified dataset
             arguments
                 self            JumpModel
                 thisDataset     ModelDataset
+                extras          logical = false
             end
         
             % generate the encoding
@@ -178,13 +179,15 @@ classdef JumpModel < handle
             eval.OffsetSDRatio = eval.OffsetSD/std(thisDataset.ReferenceIdx);
 
             % F-statistic (if linear)
-            if strcmp( self.ModelType, 'Linear' )
+            if extras && strcmp( self.ModelType, 'Linear' )
                 eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
                 eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;
                 eval.RSquared = self.Model.Rsquared.Ordinary;
                 eval.Shrinkage = self.Model.Rsquared.Ordinary - ...
                                     self.Model.Rsquared.Adjusted;
-                eval.OutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
+                eval.StudentizedOutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
+                eval.CookMeanOutlierProp = sum(self.Model.Diagnostics.CooksDistance>...
+                                            4*mean(self.Model.Diagnostics.CooksDistance))/self.NumObs;
             end
             
         end

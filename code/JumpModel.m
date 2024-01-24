@@ -180,6 +180,8 @@ classdef JumpModel < handle
 
             % F-statistic (if linear)
             if extras && strcmp( self.ModelType, 'Linear' )
+
+                % calculate extra metrics, first from the model fit
                 eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
                 eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;
                 eval.RSquared = self.Model.Rsquared.Ordinary;
@@ -188,9 +190,19 @@ classdef JumpModel < handle
                 eval.StudentizedOutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
                 eval.CookMeanOutlierProp = sum(self.Model.Diagnostics.CooksDistance>...
                                             4*mean(self.Model.Diagnostics.CooksDistance))/self.NumObs;
+                
+                % record the standardized beta coefficients
                 for i = 1:self.Model.NumCoefficients
                     eval.(['Beta' num2str(i)]) = self.Model.Coefficients.Estimate(i);
                 end
+
+                % calculate VIF to test for multicollinearity
+                modelVIFs = vif( self.Model );
+                for i = 1:self.Model.NumCoefficients-1
+                    eval.(['VIF' num2str(i)]) = modelVIFs(i);
+                end
+
+
             end
             
         end

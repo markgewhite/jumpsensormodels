@@ -36,7 +36,8 @@ classdef JumpModel < handle
                 args.ContinuousEncodingArgs struct
                 args.ModelType          string ...
                     {mustBeMember( args.ModelType, ...
-                            {'Linear', 'LinearReg', 'LinearOpt', 'SVM', 'XGBoost'})} = 'Linear'
+                            {'Linear', 'Ridge', 'Lasso', ...
+                             'LinearOpt', 'SVM', 'XGBoost'})} = 'Linear'
                 args.ModelArgs          struct
             end
 
@@ -95,33 +96,36 @@ classdef JumpModel < handle
             % standardize the encoding
             self.ZMean = mean( Z );
             self.ZStd = std( Z );
-            stdZ = (Z-self.ZMean)./self.ZStd;
+            normZ = (Z-self.ZMean)./self.ZStd;
             
             % standardize the outcome
             self.YMean = mean( thisDataset.Y );
             self.YStd = std( thisDataset.Y );
-            stdY = (thisDataset.Y - self.YMean)/self.YStd;
+            normY = (thisDataset.Y - self.YMean)/self.YStd;
 
             % select the model
             switch self.ModelType
                 case 'Linear'
                     modelFcn = @(z, y) fitlm( z, y, 'linear' );
-                case 'LinearReg'
-                    modelFcn = @fitrlinear;
+                case 'Ridge'
+                    modelFcn = @(z, y ) fitrlinear( z, y, Regularization = 'ridge' );
+                case 'Lasso'
+                    modelFcn = @(z, y ) fitrlinear( z, y, Regularization = 'lasso' );
                 case 'LinearOpt'
                     modelFcn = @(z, y) fitrlinear( z, y, OptimizeHyperparameters='auto' );
                 case 'SVM'
                     modelFcn = @fitrsvm;
                 case 'XGBoost'
-                    modelFcn = @fitrensemble;
+                    modelFcn = @(z, y) fitrensemble( z, y, Method = 'LSBoost', ...
+                        NumLearningCycles = 200, LearnRate = 0.1);
             end
 
             % fit the model with optional additional arguments
             if isempty(self.ModelArgs)
-                self.Model = modelFcn( stdZ, stdY );
+                self.Model = modelFcn( normZ, normY );
             else
                 modelArgCell = namedargs2cell( self.ModelArgs );
-                self.Model = modelFcn( stdZ, stdY, modelArgCell{:} );
+                self.Model = modelFcn( normZ, normY, modelArgCell{:} );
             end
 
         end
@@ -179,42 +183,65 @@ classdef JumpModel < handle
             eval.OffsetSDRatio = eval.OffsetSD/std(thisDataset.ReferenceIdx);
 
             % F-statistic (if linear)
-            if extras && strcmp( self.ModelType, 'Linear' )
-
+            if extras 
                 % calculate extra metrics, first from the model fit
-                eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
-                eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;
-                eval.RSquared = self.Model.Rsquared.Ordinary;
-                eval.Shrinkage = self.Model.Rsquared.Ordinary - ...
-                                    self.Model.Rsquared.Adjusted;
-                eval.StudentizedOutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
-                eval.CookMeanOutlierProp = sum(self.Model.Diagnostics.CooksDistance>...
-                                            4*mean(self.Model.Diagnostics.CooksDistance))/self.NumObs;
-                
-                % calculate VIF to test for multicollinearity
-                modelVIFs = vif( self.Model );
-                eval.VIFHighProp = sum( modelVIFs>10 )/(self.Model.NumCoefficients-1);
 
-                % test for normality
-                [p, KS] = kolmogorovSmirnov( self.Model );
-                eval.KSNotNormalProp = sum( p<0.05 )/(self.Model.NumCoefficients-1);
-                eval.KSMedian = median(KS);
+                switch self.ModelType
+                    
+                    case 'Linear'
 
-                % record the standardized beta coefficients
-                for i = 1:self.Model.NumCoefficients
-                    eval.(['Beta' num2str(i)]) = self.Model.Coefficients.Estimate(i);
-                end
+                        eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
+                        eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;
+                        eval.RSquared = self.Model.Rsquared.Ordinary;
+                        eval.Shrinkage = self.Model.Rsquared.Ordinary - ...
+                                            self.Model.Rsquared.Adjusted;
+                        eval.StudentizedOutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
+                        eval.CookMeanOutlierProp = sum(self.Model.Diagnostics.CooksDistance>...
+                                                    4*mean(self.Model.Diagnostics.CooksDistance))/self.NumObs;
                 
-                % store the VIFs as well
-                for i = 1:self.Model.NumCoefficients-1
-                    eval.(['VIF' num2str(i)]) = modelVIFs(i);
-                end
-                
-                % store the KS too
-                for i = 1:self.Model.NumCoefficients-1
-                    eval.(['KS' num2str(i)]) = KS(i);
-                end
+                        % calculate VIF to test for multicollinearity
+                        modelVIFs = vif( self.Model );
+                        eval.VIFHighProp = sum( modelVIFs>10 )/(self.Model.NumCoefficients-1);
+        
+                        % test for normality
+                        [p, KS] = kolmogorovSmirnov( self.Model );
+                        eval.KSNotNormalProp = sum( p<0.05 )/(self.Model.NumCoefficients-1);
+                        eval.KSMedian = median(KS);
 
+                        % record the standardized beta coefficients
+                        for i = 1:self.Model.NumCoefficients
+                            eval.(['Beta' num2str(i)]) = self.Model.Coefficients.Estimate(i);
+                        end
+                        
+                        % store the VIFs as well
+                        for i = 1:self.Model.NumCoefficients-1
+                            eval.(['VIF' num2str(i)]) = modelVIFs(i);
+                        end
+                        
+                        % store the KS too
+                        for i = 1:self.Model.NumCoefficients-1
+                            eval.(['KS' num2str(i)]) = KS(i);
+                        end
+
+                    case {'Ridge', 'Lasso'}
+
+                        % record the hyperparameters
+                        eval.Epsilon = self.Model.Epsilon;
+                        eval.Lambda = self.Model.Lambda;
+
+                        % record the shrunk beta coefficients
+                        for i = 1:length(self.Model.Beta)
+                            eval.(['Beta' num2str(i)]) = self.Model.Beta(i);
+                        end
+                
+                    case 'SVM'
+
+                        % record the hyperparameters
+                        eval.Epsilon = self.Model.Epsilon;
+                        eval.Lambda = self.Model.Lambda;
+
+
+                end
 
             end
             

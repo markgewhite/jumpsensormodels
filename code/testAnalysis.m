@@ -40,7 +40,7 @@ for i = testIndices
             setup.model.args.ModelType = 'Linear';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
             setup.model.args.ContinuousEncodingArgs.NumComponents = 10;
-            
+
             setup.eval.KFoldRepeats = 5;
 
             parameters = [ "data.args.Proportion", ...
@@ -80,16 +80,20 @@ for i = testIndices
         case 3
             name = 'ModelTest3';
             setup.model.args.EncodingType = 'Continuous';
-            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
+            setup.model.args.DiscreteEncodingArgs.Filtering = true;
+            setup.model.args.DiscreteEncodingArgs.FilterForStart = true;
+            setup.model.args.DiscreteEncodingArgs.IncludeHeight = true;
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffActual';
+            setup.model.args.ContinuousEncodingArgs.NumComponents = 16;
 
-            setup.eval.KFoldRepeats = 25;
+            setup.eval.KFoldRepeats = 1;
 
-            parameters = [ "model.args.ContinuousEncodingArgs.NumComponents", ...
-                           "data.class", ...
+            parameters = [ "data.class", ...
+                           "model.args.EncodingType", ...
                            "model.args.ModelType"];
-            values = { 2:2:16, ...
-                       {@SmartphoneDataset, @DelsysDataset}, ...
-                       {'Linear', 'LinearReg', 'SVM', 'XGBoost'} };
+            values = { {@SmartphoneDataset, @DelsysDataset}, ...
+                       {'Discrete', 'Continuous'}, ...
+                       {'Linear', 'Ridge', 'Lasso', 'SVM', 'XGBoost'} };
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             
@@ -97,21 +101,22 @@ for i = testIndices
 
         case 4
             name = 'VerificationTest1';
-            setup.model.args.ModelType = 'Linear';
+            setup.model.args.ModelType = 'XGBoost';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffActual';
+            setup.model.args.ContinuousEncodingArgs.NumComponents = 16;
             setup.model.args.DiscreteEncodingArgs.LegacyCode = false;
             setup.model.args.DiscreteEncodingArgs.Filtering = true;
             setup.model.args.DiscreteEncodingArgs.FilterForStart = true;
             setup.model.args.DiscreteEncodingArgs.IncludeHeight = true;
             
-            setup.eval.KFoldRepeats = 25;
+            setup.eval.KFoldRepeats = 1;
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType" ];
             values = {{@DelsysDataset, @SmartphoneDataset}, ...
                       {'Discrete', 'Continuous'}};
             
-            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            myInvestigation{i} = Investigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
 

@@ -191,15 +191,28 @@ classdef JumpModel < handle
                 eval.CookMeanOutlierProp = sum(self.Model.Diagnostics.CooksDistance>...
                                             4*mean(self.Model.Diagnostics.CooksDistance))/self.NumObs;
                 
+                % calculate VIF to test for multicollinearity
+                modelVIFs = vif( self.Model );
+                eval.VIFHighProp = sum( modelVIFs>10 )/(self.Model.NumCoefficients-1);
+
+                % test for normality
+                [p, KS] = kolmogorovSmirnov( self.Model );
+                eval.KSNotNormalProp = sum( p<0.05 )/(self.Model.NumCoefficients-1);
+                eval.KSMedian = median(KS);
+
                 % record the standardized beta coefficients
                 for i = 1:self.Model.NumCoefficients
                     eval.(['Beta' num2str(i)]) = self.Model.Coefficients.Estimate(i);
                 end
-
-                % calculate VIF to test for multicollinearity
-                modelVIFs = vif( self.Model );
+                
+                % store the VIFs as well
                 for i = 1:self.Model.NumCoefficients-1
                     eval.(['VIF' num2str(i)]) = modelVIFs(i);
+                end
+                
+                % store the KS too
+                for i = 1:self.Model.NumCoefficients-1
+                    eval.(['KS' num2str(i)]) = KS(i);
                 end
 
 

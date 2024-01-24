@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 4;
+testIndices = 3;
 catchErrors = true;
 
 % -- data setup --
@@ -39,7 +39,8 @@ for i = testIndices
             name = 'SamplingTest2';
             setup.model.args.ModelType = 'Linear';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
-
+            setup.model.args.ContinuousEncodingArgs.NumComponents = 10;
+            
             setup.eval.KFoldRepeats = 5;
 
             parameters = [ "data.args.Proportion", ...
@@ -77,7 +78,7 @@ for i = testIndices
             myInvestigation{i}.run;
 
         case 3
-            name = 'ModelTest2';
+            name = 'ModelTest3';
             setup.model.args.EncodingType = 'Continuous';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
 

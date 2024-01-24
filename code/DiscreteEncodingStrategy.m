@@ -4,6 +4,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
     properties
         AccG            % acceleration due to gravity
         Filtering       % whether acceleration has been low-pass filtered
+        IncludeHeight   % whether estimated jump height should be included
         Onset           % jump onset detection parameters structure
                         %    Filter                 if signal filtering first
                         %    DetectionMethod        how to detect movement
@@ -25,6 +26,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 samplingFreq            double
                 args.Filtering          logical = false
                 args.FilterForStart     logical = true
+                args.IncludeHeight      logical = true
                 args.DetectionMethod        char ...
                     {mustBeMember( args.DetectionMethod, ...
                         {'SDMultiple', 'Absolute'})} = 'SDMultiple'
@@ -44,8 +46,11 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             % set acceleration due to gravity and sampling
             self.AccG = 9.80665;
 
-            % set the jump onset parameters
+            % set other parameters
             self.Filtering = args.Filtering;
+            self.IncludeHeight = args.IncludeHeight;
+
+            % set the jump onset parameters
             self.Onset.Filter = args.FilterForStart;
             self.Onset.DetectionMethod = args.DetectionMethod;
             self.Onset.WindowMethod = args.WindowMethod;
@@ -85,7 +90,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             numNodes = thisDataset.VMDParams.NumModes;
 
             % compute features for one observations at a time
-            Z = zeros( numObs, 23 + numNodes );
+            Z = zeros( numObs, 22 + numNodes + self.IncludeHeight );
             takeoffIdx = zeros( numObs, 1 );
             for i = 1:numObs
                 
@@ -134,9 +139,6 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 % compute the power time series
                 pwr  = self.calcPwrCurve( t0, tTO, acc, vel );
 
-                % calculate the jump height
-                h = self.calcJumpHeight( tTO, vel );
-
                 % calculate jump features
                 featuresJump = self.calcJumpFeatures( t0, tUB, tBP, tTO, ...
                                                       acc, vel, pwr );
@@ -144,7 +146,13 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 featuresVMD = vmd( i, : );
 
                 % assemble features vector
-                Z( i, : ) = [round(100*h) featuresJump featuresVMD];
+                if self.IncludeHeight
+                    % calculate the jump height
+                    h = self.calcJumpHeight( tTO, vel );
+                    Z( i, : ) = [featuresJump featuresVMD round(100*h)];
+                else
+                    Z( i, : ) = [featuresJump featuresVMD];
+                end
 
                 %disp(['i = ' num2str(i) '; ' num2str(featuresJump)]);
 

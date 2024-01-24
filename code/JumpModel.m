@@ -188,6 +188,9 @@ classdef JumpModel < handle
                 eval.StudentizedOutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
                 eval.CookMeanOutlierProp = sum(self.Model.Diagnostics.CooksDistance>...
                                             4*mean(self.Model.Diagnostics.CooksDistance))/self.NumObs;
+                for i = 1:self.Model.NumCoefficients
+                    eval.(['Beta' num2str(i)]) = self.Model.Coefficients.Estimate(i);
+                end
             end
             
         end

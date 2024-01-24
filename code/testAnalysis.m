@@ -101,12 +101,13 @@ for i = testIndices
             setup.model.args.DiscreteEncodingArgs.LegacyCode = false;
             setup.model.args.DiscreteEncodingArgs.Filtering = true;
             setup.model.args.DiscreteEncodingArgs.FilterForStart = true;
+            setup.model.args.DiscreteEncodingArgs.IncludeHeight = true;
             
             setup.eval.KFoldRepeats = 25;
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType" ];
-            values = {{@DelsysDataset}, ...
+            values = {{@DelsysDataset, @SmartphoneDataset}, ...
                       {'Discrete', 'Continuous'}};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );

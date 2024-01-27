@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 6;
+testIndices = 7;
 catchErrors = true;
 
 % -- data setup --
@@ -130,7 +130,7 @@ for i = testIndices
             setup.model.args.ModelType = 'Linear';
             setup.model.args.EncodingType = 'Discrete';
             
-            setup.eval.KFoldRepeats = 1;
+            setup.eval.KFoldRepeats = 25;
 
             parameters = [ "data.class", ...
                            "model.args.DiscreteEncodingArgs.DetectionMethod", ...
@@ -143,6 +143,27 @@ for i = testIndices
             
             myInvestigation{i}.run;
            
+        case 7
+            name = 'OnsetTest2';
+            setup.model.args.ModelType = 'Linear';
+            setup.model.args.EncodingType = 'Discrete';
+            setup.model.args.DiscreteEncodingArgs.ReturnVar = 't0';
+            setup.model.args.DiscreteEncodingArgs.DetectionMethod = 'SDMultiple';
+            setup.eval.KFoldRepeats = 2;
+
+            parameters = [ "model.args.DiscreteEncodingArgs.AccDetectionThreshold", ...
+                           "model.args.DiscreteEncodingArgs.WindowAdjustment", ...
+                           "data.class", ...
+                           "model.args.DiscreteEncodingArgs.WindowMethod" ];
+            values = {0.25:0.25:2.00, ...
+                      0.50:0.25:2.00, ...
+                      {@SmartphoneDataset, @DelsysDataset}, ...
+                      {'Fixed', 'Dynamic'}};
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
+            
+            myInvestigation{i}.run;
+
 
     end
 

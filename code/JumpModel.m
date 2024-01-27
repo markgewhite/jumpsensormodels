@@ -19,6 +19,7 @@ classdef JumpModel < handle
         Loss                % loss
         Y                   % ground truth structure Y values
         YHat                % predictions structure YHat values
+        IsRankDeficient     % flag indicating rank deficiency
     end
 
     methods
@@ -120,6 +121,7 @@ classdef JumpModel < handle
                         NumLearningCycles = 200, LearnRate = 0.1);
             end
 
+            warning('off', 'all');
             % fit the model with optional additional arguments
             if isempty(self.ModelArgs)
                 self.Model = modelFcn( normZ, normY );
@@ -127,6 +129,11 @@ classdef JumpModel < handle
                 modelArgCell = namedargs2cell( self.ModelArgs );
                 self.Model = modelFcn( normZ, normY, modelArgCell{:} );
             end
+            if ~isempty(lastwarn)
+                self.IsRankDeficient = strcmp( lastwarn, ...
+                    'Regression design matrix is rank deficient to within machine precision.');
+            end
+            warning('on', 'all');
 
         end
 
@@ -189,6 +196,8 @@ classdef JumpModel < handle
                 switch self.ModelType
                     
                     case 'Linear'
+
+                        eval.RankDeficient = self.IsRankDeficient;
 
                         eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
                         eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;

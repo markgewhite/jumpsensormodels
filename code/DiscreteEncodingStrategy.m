@@ -17,6 +17,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                         %    WindowAdjustment       backwards from detection
         PlotTimePts     % flag whether to plot timing points when generating features
         LegacyCode      % flag whether to run legacy code
+        ReturnVar       % name of variable to be returned as index for evaluations
     end
 
 
@@ -44,6 +45,9 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 args.WindowAdjustment    double = 1.00
                 args.PlotTimePts         logical = false
                 args.LegacyCode          logical = false
+                args.ReturnVar           string ...
+                    {mustBeMember( args.ReturnVar, ...
+                        {'t0', 'tUB', 'tBP', 'tTO'})} = 'tTO'
             end
 
             self = self@EncodingStrategy( samplingFreq );
@@ -69,6 +73,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             % operation
             self.PlotTimePts = args.PlotTimePts;
             self.LegacyCode = args.LegacyCode;
+            self.ReturnVar = args.ReturnVar;
 
         end
 
@@ -84,7 +89,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
         end
 
 
-        function [ Z, takeoffIdx ] = extractFeatures( self, thisDataset )
+        function [ Z, offsetIdx ] = extractFeatures( self, thisDataset )
             % Compute the features 
             arguments
                 self                DiscreteEncodingStrategy
@@ -98,7 +103,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
             % compute features for one observations at a time
             Z = zeros( numObs, 22 + numNodes + self.IncludeHeight );
-            takeoffIdx = zeros( numObs, 1 );
+            offsetIdx = zeros( numObs, 1 );
             for i = 1:numObs
                 
                 % setup plot, if required
@@ -182,7 +187,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 end
 
                 % store for reference
-                takeoffIdx(i) = tTO;
+                offsetIdx(i) = eval( self.ReturnVar );
 
             end
 

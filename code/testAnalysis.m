@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 5;
+testIndices = 6;
 catchErrors = true;
 
 % -- data setup --
@@ -120,6 +120,24 @@ for i = testIndices
                            "model.args.DiscreteEncodingArgs.FilterCutoff" ];
             values = {{@SmartphoneDataset, @DelsysDataset}, ...
                       5:5:50};
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            
+            myInvestigation{i}.run;
+           
+        case 6
+            name = 'OnsetTest1';
+            setup.model.args.ModelType = 'Linear';
+            setup.model.args.EncodingType = 'Discrete';
+            
+            setup.eval.KFoldRepeats = 1;
+
+            parameters = [ "data.class", ...
+                           "model.args.DiscreteEncodingArgs.DetectionMethod", ...
+                           "model.args.DiscreteEncodingArgs.ReturnVar" ];
+            values = {{@SmartphoneDataset, @DelsysDataset}, ...
+                      {'Absolute', 'SDMultiple'}, ...
+                      {'t0', 'tUB', 'tBP', 'tTO'}};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
             

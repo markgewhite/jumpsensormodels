@@ -4,6 +4,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
     properties
         AccG            % acceleration due to gravity
         Filtering       % whether acceleration has been low-pass filtered
+        FilterCutoff    % low-pass filter cutoff frequency
+        FilterOrder     % order 
         IncludeHeight   % whether estimated jump height should be included
         Onset           % jump onset detection parameters structure
                         %    Filter                 if signal filtering first
@@ -26,6 +28,9 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 samplingFreq            double
                 args.Filtering          logical = true
                 args.FilterForStart     logical = true
+                args.FilterCutoff       double {mustBePositive} = 50 % Hz
+                args.FilterOrder        double {mustBeInteger, ...
+                    mustBeGreaterThan(args.FilterOrder, 3)} = 6
                 args.IncludeHeight      logical = true
                 args.DetectionMethod        char ...
                     {mustBeMember( args.DetectionMethod, ...
@@ -48,6 +53,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
             % set other parameters
             self.Filtering = args.Filtering;
+            self.FilterCutoff = args.FilterCutoff;
+            self.FilterOrder = args.FilterOrder;
             self.IncludeHeight = args.IncludeHeight;
 
             % set the jump onset parameters
@@ -118,7 +125,8 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 end
 
                 if self.Filtering
-                    acc = bwfilt(thisDataset.Acc{i}, 6, self.SamplingFreq, 50, 'low');
+                    acc = bwfilt(thisDataset.Acc{i}, self.FilterOrder, ...
+                                 self.SamplingFreq, self.FilterCutoff, 'low');
                 else
                     acc = thisDataset.Acc{i};
                 end

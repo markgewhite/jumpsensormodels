@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 3;
+testIndices = 5;
 catchErrors = true;
 
 % -- data setup --
@@ -108,6 +108,23 @@ for i = testIndices
             myInvestigation{i} = Investigation( name, path, parameters, values, setup );
             
             myInvestigation{i}.run;
+
+        case 5
+            name = 'FilteringTest1';
+            setup.model.args.ModelType = 'Linear';
+            setup.model.args.EncodingType = 'Discrete';
+            
+            setup.eval.KFoldRepeats = 25;
+
+            parameters = [ "data.class", ...
+                           "model.args.DiscreteEncodingArgs.FilterCutoff" ];
+            values = {{@SmartphoneDataset, @DelsysDataset}, ...
+                      5:5:50};
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup );
+            
+            myInvestigation{i}.run;
+           
 
     end
 

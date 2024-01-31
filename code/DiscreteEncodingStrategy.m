@@ -40,7 +40,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                     {mustBeMember( args.WindowMethod, ...
                         {'Fixed', 'Dynamic'})} = 'Fixed'
                 args.SDDetectionThreshold double = 8
-                args.AccDetectionThreshold double = 1.0
+                args.AccDetectionThreshold double = 1.4
                 args.DetectionAdjustment double = 0.03
                 args.WindowAdjustment    double = 1.00
                 args.PlotTimePts         logical = false

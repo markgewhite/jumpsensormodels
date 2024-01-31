@@ -127,7 +127,7 @@ for i = testIndices
            
         case 6
             name = 'OnsetTest1';
-            setup.model.args.ModelType = 'Linear';
+            setup.model.args.ModelType = 'Lasso';
             setup.model.args.EncodingType = 'Discrete';
             
             setup.eval.KFoldRepeats = 25;
@@ -145,7 +145,7 @@ for i = testIndices
            
         case 7
             name = 'OnsetTest2';
-            setup.model.args.ModelType = 'Linear';
+            setup.model.args.ModelType = 'Lasso';
             setup.model.args.EncodingType = 'Discrete';
             setup.model.args.DiscreteEncodingArgs.ReturnVar = 't0';
             setup.model.args.DiscreteEncodingArgs.DetectionMethod = 'SDMultiple';
@@ -166,30 +166,29 @@ for i = testIndices
 
         case 8
             name = 'OnsetTest3';
-            setup.model.args.ModelType = 'Linear';
+            setup.model.args.ModelType = 'Lasso';
             setup.model.args.EncodingType = 'Discrete';
             setup.model.args.DiscreteEncodingArgs.ReturnVar = 't0';
             setup.model.args.DiscreteEncodingArgs.DetectionMethod = 'SDMultiple';
             setup.model.args.DiscreteEncodingArgs.WindowMethod = 'Dynamic';
-            setup.model.args.DiscreteEncodingArgs.WindowAdjustment = 1.0;
             setup.eval.KFoldRepeats = 25;
 
             parameters = [ "model.args.DiscreteEncodingArgs.AccDetectionThreshold", ...
                            "model.args.DiscreteEncodingArgs.SDDetectionThreshold", ...
                            "data.class", ...
-                           "model.args.DiscreteEncodingArgs.WindowMethod" ];
-            values = {0.10:0.10:1.00, ...
+                           "model.args.DiscreteEncodingArgs.WindowAdjustment" ];
+            values = {0.2:0.2:2.0, ...
                       1:9, ...
                       {@SmartphoneDataset, @DelsysDataset}, ...
-                      {'Fixed', 'Dynamic'}};
+                      0.05:0.05:1.00};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             
             myInvestigation{i}.run;
 
         case 9
-            name = 'OnsetTest4';
-            setup.model.args.ModelType = 'Linear';
+            name = 'OnsetTest4A';
+            setup.model.args.ModelType = 'Lasso';
             setup.model.args.EncodingType = 'Discrete';
             setup.model.args.DiscreteEncodingArgs.ReturnVar = 't0';
             setup.model.args.DiscreteEncodingArgs.WindowMethod = 'Fixed';

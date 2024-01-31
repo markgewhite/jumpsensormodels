@@ -106,6 +106,8 @@ classdef Investigation < handle
 
         datasets = getDatasets( self, args )
 
+        [QTrn, QVal] = getEvaluationValue( self, fld )
+
         [trnTbl, valTbl] = getMeanAndSD( self, args )
         
         report = getResults( self )

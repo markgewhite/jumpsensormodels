@@ -193,6 +193,10 @@ classdef JumpModel < handle
             eval.OffsetMax = max( offsets );
             eval.OffsetMin = min( offsets );
 
+            for i = 1:length(offsets)
+                eval.(['Offsets' num2str(i)]) = offsets(i);
+            end
+
             % F-statistic (if linear)
             if extras 
                 % calculate extra metrics, first from the model fit

@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 7;
+testIndices = 9;
 catchErrors = true;
 
 % -- data setup --
@@ -149,13 +149,13 @@ for i = testIndices
             setup.model.args.EncodingType = 'Discrete';
             setup.model.args.DiscreteEncodingArgs.ReturnVar = 't0';
             setup.model.args.DiscreteEncodingArgs.DetectionMethod = 'SDMultiple';
-            setup.eval.KFoldRepeats = 2;
+            setup.eval.KFoldRepeats = 25;
 
             parameters = [ "model.args.DiscreteEncodingArgs.AccDetectionThreshold", ...
                            "model.args.DiscreteEncodingArgs.WindowAdjustment", ...
                            "data.class", ...
                            "model.args.DiscreteEncodingArgs.WindowMethod" ];
-            values = {0.25:0.25:2.00, ...
+            values = {0.10:0.10:1.00, ...
                       0.50:0.25:2.00, ...
                       {@SmartphoneDataset, @DelsysDataset}, ...
                       {'Fixed', 'Dynamic'}};
@@ -163,6 +163,52 @@ for i = testIndices
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             
             myInvestigation{i}.run;
+
+        case 8
+            name = 'OnsetTest3';
+            setup.model.args.ModelType = 'Linear';
+            setup.model.args.EncodingType = 'Discrete';
+            setup.model.args.DiscreteEncodingArgs.ReturnVar = 't0';
+            setup.model.args.DiscreteEncodingArgs.DetectionMethod = 'SDMultiple';
+            setup.model.args.DiscreteEncodingArgs.WindowMethod = 'Dynamic';
+            setup.model.args.DiscreteEncodingArgs.WindowAdjustment = 1.0;
+            setup.eval.KFoldRepeats = 25;
+
+            parameters = [ "model.args.DiscreteEncodingArgs.AccDetectionThreshold", ...
+                           "model.args.DiscreteEncodingArgs.SDDetectionThreshold", ...
+                           "data.class", ...
+                           "model.args.DiscreteEncodingArgs.WindowMethod" ];
+            values = {0.10:0.10:1.00, ...
+                      1:9, ...
+                      {@SmartphoneDataset, @DelsysDataset}, ...
+                      {'Fixed', 'Dynamic'}};
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
+            
+            myInvestigation{i}.run;
+
+        case 9
+            name = 'OnsetTest4';
+            setup.model.args.ModelType = 'Linear';
+            setup.model.args.EncodingType = 'Discrete';
+            setup.model.args.DiscreteEncodingArgs.ReturnVar = 't0';
+            setup.model.args.DiscreteEncodingArgs.WindowMethod = 'Fixed';
+            setup.eval.KFoldRepeats = 25;
+
+            parameters = [ "model.args.DiscreteEncodingArgs.AccDetectionThreshold", ...
+                           "model.args.DiscreteEncodingArgs.SDDetectionThreshold", ...
+                           "data.class", ...
+                           "model.args.DiscreteEncodingArgs.DetectionMethod" ];
+            values = {0.20:0.20:2.00, ...
+                      1:9, ...
+                      {@SmartphoneDataset, @DelsysDataset}, ...
+                      {'Absolute', 'SDMultiple'}};
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
+            
+            myInvestigation{i}.run;
+
+
 
 
     end

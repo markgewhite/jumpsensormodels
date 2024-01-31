@@ -48,7 +48,7 @@ function self = run( self )
         end
 
         % save the evaluations
-        thisEvaluation.save;
+        %thisEvaluation.save;
 
         % record results
         self.Evaluations{ idxC{:} } = thisEvaluation;

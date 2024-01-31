@@ -186,8 +186,12 @@ classdef JumpModel < handle
             eval.RMSE = eval.StdRMSE*self.YStd;
 
             % store the offsets
+            eval.OffsetMean = mean( offsets );
             eval.OffsetSD = std( offsets );
             eval.OffsetSDRatio = eval.OffsetSD/std(thisDataset.ReferenceIdx);
+            eval.OffsetCV = eval.OffsetSD./eval.OffsetMean;
+            eval.OffsetMax = max( offsets );
+            eval.OffsetMin = min( offsets );
 
             % F-statistic (if linear)
             if extras 

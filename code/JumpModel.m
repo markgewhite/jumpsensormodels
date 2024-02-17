@@ -62,18 +62,18 @@ classdef JumpModel < handle
 
                     if isfield( args, 'DiscreteEncodingArgs' )
                         encodingArgs = namedargs2cell( args.DiscreteEncodingArgs );
-                        self.EncodingStrategy = DiscreteEncodingStrategy( thisDataset.SampleFreq, encodingArgs{:} );
+                        self.EncodingStrategy = DiscreteEncodingStrategy( encodingArgs{:} );
                     else
-                        self.EncodingStrategy = DiscreteEncodingStrategy( thisDataset.SampleFreq );
+                        self.EncodingStrategy = DiscreteEncodingStrategy;
                     end
 
                 case 'Continuous'
 
                     if isfield( args, 'ContinuousEncodingArgs' )
                         encodingArgs = namedargs2cell( args.ContinuousEncodingArgs );
-                        self.EncodingStrategy = FPCAEncodingStrategy( thisDataset.SampleFreq, encodingArgs{:} );
+                        self.EncodingStrategy = FPCAEncodingStrategy( encodingArgs{:} );
                     else
-                        self.EncodingStrategy = FPCAEncodingStrategy( thisDataset.SampleFreq );
+                        self.EncodingStrategy = FPCAEncodingStrategy;
                     end
                     
             end

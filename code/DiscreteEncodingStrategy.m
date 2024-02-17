@@ -23,10 +23,9 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
     methods
 
-        function self = DiscreteEncodingStrategy( samplingFreq, args )
+        function self = DiscreteEncodingStrategy( args )
             % Initialize the model
             arguments
-                samplingFreq            double
                 args.Filtering          logical = true
                 args.FilterForStart     logical = true
                 args.FilterCutoff       double {mustBePositive} = 50 % Hz
@@ -53,7 +52,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             names = ["A", "b", "C", "D", "e", "F", "G", "H", "i", "J", ...
                      "k1", "l", "M", "n", "O", "p", "q", "r", "s", "u", ...
                      "W", "z", "VMD1", "VMD2", "VMD3", "h"];
-            self = self@EncodingStrategy( names, samplingFreq );
+            self = self@EncodingStrategy( names );
 
             % set acceleration due to gravity and sampling
             self.AccG = 9.80665;

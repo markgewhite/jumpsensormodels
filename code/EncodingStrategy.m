@@ -8,14 +8,12 @@ classdef EncodingStrategy < handle
 
     methods
         
-        function self = EncodingStrategy( names, samplingFreq )
+        function self = EncodingStrategy( names )
             % Initialize the overarching encoding strategy 
             arguments
                 names               string
-                samplingFreq        double = 100
             end
 
-            self.SamplingFreq = samplingFreq;
             self.Names = names;
                 
         end

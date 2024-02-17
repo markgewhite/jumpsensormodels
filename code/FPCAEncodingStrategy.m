@@ -20,10 +20,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
     methods
 
-        function self = FPCAEncodingStrategy( samplingFreq, args )
+        function self = FPCAEncodingStrategy( args )
             % Initialize the model
             arguments
-                samplingFreq            double
                 args.NumComponents      double ...
                     {mustBeInteger, mustBePositive} = 16
                 args.BasisOrder         double ...
@@ -54,7 +53,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             names = string(arrayfun(@(x) sprintf('FPC%d', x), ...
                                     1:args.NumComponents, ...
                                     UniformOutput = false));
-            self = self@EncodingStrategy( names, samplingFreq );
+            self = self@EncodingStrategy( names );
 
             self.NumComponents = args.NumComponents;
             self.BasisOrder = args.BasisOrder;
@@ -77,6 +76,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 self                FPCAEncodingStrategy
                 thisDataset         ModelDataset
             end
+
+            self.SamplingFreq = thisDataset.SampleFreq;
 
             % align the curves, setting alignment
             XAligned = self.setCurveAlignment( thisDataset );

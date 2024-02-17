@@ -53,22 +53,35 @@ setup.model.args.ContinuousEncodingArgs.NumComponents = 10;
 
 eval.CVType = 'KFold';
 eval.KFolds = 2;
-eval.KFoldRepeats = 100;
+eval.KFoldRepeats = 50;
 eval.RandomSeed = 1234;
 eval.InParallel = true;
 args = namedargs2cell( eval );
 
+%% Smartphone evaluation
 setup.data.class = @SmartphoneDataset;
 contEvalSmart = ModelEvaluation( 'ContVariationSmart', path, setup, args{:} );
 
+%% Delsys evaluation
+setup.data.class = @DelsysDataset;
+contEvalDelsys = ModelEvaluation( 'ContVariationDelsys', path, setup, args{:} );
+
+%% plot the spread in X across the folds
 contXSmartKFold = cellfun( @(mdl) table2array(mdl.Model.Variables), ...
                            contEvalSmart.Models, UniformOutput=false );
 
-%% 
 figCDistVarSmart = plotPredictorDistributions( contXSmartKFold, ...
                                                contEncodingSmart.Names, ...
                                                varSelection, ...
                                                "Smartphone (Continuous)" );
+
+contXDelsysKFold = cellfun( @(mdl) table2array(mdl.Model.Variables), ...
+                           contEvalDelsys.Models, UniformOutput=false );
+
+figCDistVarDelsys = plotPredictorDistributions( contXDelsysKFold, ...
+                                                contEncodingSmart.Names, ...
+                                                varSelection, ...
+                                                "Delsys (Continuous)" );
 
 
 function [fig, ax] = plotPredictorDistributions( X, names, idx, figTitle )
@@ -126,32 +139,34 @@ function [pNormX, mu, sigma] = plotPDFSpread( ax, X, idx )
     minX = min(cellfun( @(x) min(x(:,idx)), X ));
     maxX = max(cellfun( @(x) max(x(:,idx)), X ));
 
+    % extend them
+    extRngX = (maxX-minX)*0.15;
+
     % initialise normalised scale
-    pNormX = linspace( minX, maxX, 100 )';
+    pNormX = linspace( minX-extRngX, maxX+extRngX, 100 )';
     pNormY = zeros( 100, numFits );
 
     % fit PDFs for each set
     for i = 1:numFits
-        [pY, pX] = kde( X{i}(:,idx) );
-        % normalise to the standard scale
-        pNormY(:,i) = interp1( pX, pY, pNormX, 'pchip' );
+        pNormY(:,i) = kde( X{i}(:,idx), EvaluationPoints = pNormX );
     end
 
     allX = cat(1, X{:} );
     mu = mean( allX(:,idx) );
     sigma = std( allX(:,idx) );
 
-    meanY = mean(pNormY,2);
-    stdY = std(pNormY,[],2);
+    prc25Y = prctile(pNormY, 25, 2);
+    prc50Y = prctile(pNormY, 50, 2);
+    prc75Y = prctile(pNormY, 75, 2);
 
     % draw the shading spread of +/- SD
     cmap = lines(1);
     xSpread = [ pNormX; flip(pNormX) ];
-    ySpread = [ meanY+stdY; flip(meanY-stdY) ];
+    ySpread = [ prc75Y; flip(prc25Y) ];
     fill( ax, xSpread, ySpread, cmap, FaceAlpha = 0.5, EdgeColor = 'none' );
     hold( ax, 'on' );
 
-    plot( ax, pNormX, meanY, LineWidth=1.5, Color=cmap );
+    plot( ax, pNormX, prc50Y, LineWidth=1.5, Color=cmap );
 
 
 end

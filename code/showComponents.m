@@ -30,66 +30,15 @@ contEvalDelsys = ModelEvaluation( 'ContVariationDelsys', path, setup, args{:} );
 %% plot the spread in X across the folds
 titleSuffix = ['(Continuous: Alignment = '  ...
                setup.model.args.ContinuousEncodingArgs.AlignmentMethod ')'];
+tRange = [ 8, 11 ];
 
-figFPCSmart = plotFPCSpread( contEvalSmart, numComp, ['Smartphone ' titleSuffix] );
-figFPCDelsys = plotFPCSpread( contEvalDelsys, numComp, ['Delsys ' titleSuffix] );
+figFPCSmart = plotFPCSpread( contEvalSmart, numComp, ...
+                             ['Smartphone ' titleSuffix], [9 11] );
+figFPCDelsys = plotFPCSpread( contEvalDelsys, numComp, ...
+                              ['Delsys ' titleSuffix], [7 10] );
 
 
-function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle )
-    % Plot the spread of components from the evaluation
-    arguments
-        thisEvaluation      ModelEvaluation
-        numComp             double {mustBeInteger, mustBePositive}
-        figTitle            string
-    end
 
-    % get the mean curves for each fit and then align them
-    XMean = cellfun( @(mdl) eval_fd( mdl.EncodingStrategy.TSpan, ...
-                                     mdl.EncodingStrategy.MeanFd ), ...
-                            thisEvaluation.Models, ...
-                            UniformOutput=false );
-    
-    [XMean, offsets] = alignSignals( padData(XMean, Location='Right') );
-    
-    % setup the plot
-    fig = figure;
-    fig.Position(3) = numComp*200 + 100;
-    fig.Position(4) = 200;
-
-    layout = tiledlayout( 1, numComp, TileSpacing ='compact' );
-    ax = gobjects( numComp, 1 );
-    cmap = lines(4);
-    
-    for i = 1:numComp
-
-        % get the component curves for each fit
-        XComp = cellfun( @(mdl) eval_fd( mdl.EncodingStrategy.TSpan, ...
-                                         mdl.EncodingStrategy.CompFd(i) ), ...
-                         thisEvaluation.Models, ...
-                         UniformOutput=false );
-        % align them using the same offestes as those of the mean
-        XComp = alignSignals( padData(XComp, Location='Right'), offsets );
-    
-        % compute the component shift from the mean
-        XCompPlus = XMean + 2*XComp;
-        XCompMinus = XMean - 2*XComp;
-    
-        % plot the components
-        ax(i) = nexttile( layout );   
-        plotSpread( ax(i), XCompPlus, [], cmap(2,:) );
-        plotSpread( ax(i), XCompMinus, [], cmap(4,:) );
-        plotSpread( ax(i), XMean, [], cmap(1,:) );
-
-        % format plot
-        xlabel( ax(i), 'Time' );
-        ylabel( ax(i), 'Acc' );
-        title( ax(i), ['Component ' num2str(i)] );
-
-    end
-
-    sgtitle( fig, figTitle );
-
-end
 
 
 

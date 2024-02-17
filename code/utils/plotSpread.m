@@ -18,7 +18,7 @@ function plotSpread( ax, X, t, c )
     xSpread = [ t flip(t) ];
     ySpread = [ meanX+stdX; flip(meanX-stdX) ];
 
-    fill( ax, xSpread, ySpread, c, FaceAlpha = 0.25, EdgeColor = 'none' );
+    fill( ax, xSpread, ySpread, c, FaceAlpha = 0.5, EdgeColor = 'none' );
     hold( ax, 'on' );
     plot( ax, t, meanX, LineWidth=2.5, Color=c );
 

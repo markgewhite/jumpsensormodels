@@ -50,7 +50,10 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                         {'t0', 'tUB', 'tBP', 'tTO'})} = 'tTO'
             end
 
-            self = self@EncodingStrategy( samplingFreq );
+            names = ["A", "b", "C", "D", "e", "F", "G", "H", "i", "J", ...
+                     "k1", "l", "M", "n", "O", "p", "q", "r", "s", "u", ...
+                     "W", "z", "VMD1", "VMD2", "VMD3", "h"];
+            self = self@EncodingStrategy( names, samplingFreq );
 
             % set acceleration due to gravity and sampling
             self.AccG = 9.80665;

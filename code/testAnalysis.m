@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 9;
+testIndices = 8;
 catchErrors = true;
 
 % -- data setup --

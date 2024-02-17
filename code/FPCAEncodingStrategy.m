@@ -51,7 +51,10 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 throwAsCaller( MException(eid, msg) );
             end
 
-            self = self@EncodingStrategy( samplingFreq );
+            names = string(arrayfun(@(x) sprintf('FPC%d', x), ...
+                                    1:args.NumComponents, ...
+                                    UniformOutput = false));
+            self = self@EncodingStrategy( names, samplingFreq );
 
             self.NumComponents = args.NumComponents;
             self.BasisOrder = args.BasisOrder;

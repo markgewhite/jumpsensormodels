@@ -7,6 +7,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         BasisOrder          % basis function order
         PenaltyOrder        % roughness penalty order
         Lambda              % roughness penalty
+        TSpan               % common timespan for FDA
         MeanFd              % mean curve as a functional data object
         CompFd              % component curves as functional data objects
         AlignmentMethod     % method for aligning signals prior to PCA
@@ -87,7 +88,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             end
 
             % create the functional representation
-            XFd = self.funcSmoothData( XAligned );
+            [XFd, self.TSpan] = self.funcSmoothData( XAligned );
 
             % perform principal components analysis (fit the model)
             pcaStruct = pca_fd( XFd, self.NumComponents );
@@ -208,7 +209,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         end
 
 
-        function XFd = funcSmoothData( self, X )
+        function [ XFd, tSpan ] = funcSmoothData( self, X )
             % Convert raw time series data to smooth functions
             arguments
                 self            FPCAEncodingStrategy

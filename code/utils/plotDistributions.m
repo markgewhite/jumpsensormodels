@@ -37,7 +37,7 @@ function [fig, ax] = plotDistributions( X, names, idx, figTitle )
 
         % format plot
         xlabel( ax{i}, names(idx(i)) );
-        ylabel( ax{i}, 'Freq' );
+        ylabel( ax{i}, 'Density' );
 
     end
 

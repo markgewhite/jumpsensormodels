@@ -475,7 +475,8 @@ function tTO = findLandmarkDiscreteMethod( acc, fs )
     end
 
     % setup the default discrete encoding
-    thisEncoding = DiscreteEncodingStrategy( fs );
+    thisEncoding = DiscreteEncodingStrategy;
+    thisEncoding.SamplingFreq = fs;
 
     % find the onset time
     t0 = thisEncoding.findStartTime( acc );

@@ -13,10 +13,12 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         AlignmentMethod     % method for aligning signals prior to PCA
         AlignmentSignal     % reference signal for alignment
         AlignmentTolerance  % alignment variance tolerance
-        ShowConvergence     % show plots and variance of alignement convergence
+        ShowConvergence     % show plots and variance of alignment convergence
         Fitted              % flag whether the model has been fit
         FittedAlignmentIdx  % fitted alignment indices for training data
         RefAlignmentIdx     % ground truth alignment indices for reference
+        StoreXAligned       % whether the store the aligned signals
+        XAligned            % (optional) aligned signals in an array
     end
 
     methods
@@ -43,6 +45,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 args.AlignmentTolerance double ...
                     {mustBePositive} = 5E-2
                 args.ShowConvergence    logical = false
+                args.StoreXAligned      logical = false
             end
 
             if args.PenaltyOrder > (args.BasisOrder-2)
@@ -65,6 +68,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             self.AlignmentTolerance = args.AlignmentTolerance;
             self.ShowConvergence = args.ShowConvergence;
             self.Fitted = false;
+            self.StoreXAligned = args.StoreXAligned;
 
         end
 
@@ -85,6 +89,10 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
             if isempty( XAligned )
                 error('No alignment data.');
+            end
+
+            if self.StoreXAligned
+                self.XAligned = XAligned;
             end
 
             % create the functional representation

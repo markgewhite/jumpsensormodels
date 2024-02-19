@@ -345,10 +345,12 @@ function [XAligned, alignmentSignal, alignmentIdx ] = iteratedAlignment( X, tol,
     converged = false;
     i = 0;
     XAligned = X;
+    alignmentIdx = zeros( size(X,2), 1 );
 
     while ~converged && i<10
-        [XAligned, alignmentSignal, alignmentIdx] = ...
+        [XAligned, alignmentSignal, offset] = ...
                             xcorrAlignment( XAligned, Reference = 'Mean' );
+        alignmentIdx = alignmentIdx + offset;
 
         XVar = var(permute(XAligned, [1 3 2]), [], 3);
         XMeanVar = mean( XVar, 'all' );

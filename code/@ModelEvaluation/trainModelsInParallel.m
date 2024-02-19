@@ -62,17 +62,13 @@ function trainModelsInParallel( self, modelSetup )
         % train the model and time it
         if verbose
             disp(['Fold ' num2str(k) '/' num2str(numModels) ...
-                    ': Training the model in parallel ...']);
+                    ': Evaluating the model in parallel ...']);
         end
         tStart = tic;
         models{k}.train( thisTrnSet{k} );
         models{k}.Timing.Training.TotalTime = toc(tStart);
 
         % evaluate the model
-        if verbose
-            disp(['Fold ' num2str(k) '/' num2str(numModels) ...
-                    ': Evaluating the model in parallel ...']);
-        end
         tStart = tic;
         models{k}.evaluate( thisTrnSet{k}, thisValSet{k} );
         models{k}.Timing.Validation.TotalTime = toc(tStart);

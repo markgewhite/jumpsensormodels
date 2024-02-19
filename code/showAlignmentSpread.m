@@ -22,32 +22,71 @@ parameters = [ "data.class", ...
 values = { datasets, methods };
 
 thisInvestigation = Investigation( 'AlignmentSpread', path, ...
-                                    parameters, values, setup );
+                                    parameters, values, setup, true );
 thisInvestigation.run;
 
 
 %% Compute the alignment spreads
-numMethods = numel(methods);
-spreadMean = zeros( 2, numMethods );
-spreadSE = zeros( 2, numMethods );
-spreadP05 = zeros( 2, numMethods );
-spreadP95 = zeros( 2, numMethods );
-alignments = cell( 2, numMethods );
+
+% Initialize cell arrays to store data and groups for each dataset
+numMethods = [5 6];
+offsetSpreads = cell(2, 1); 
+groups = cell(2, 1);
+names = cell(2, 1); 
 
 for i = 1:2
-    for j = 1:numMethods
+    offsetSpreads{i} = [];
+    groups{i} = [];
+    names{i} = thisInvestigation.Evaluations{i,1}.TrainingDataset.Name;
 
-        offsetSDs = cellfun( @(mdl) std(mdl.EncodingStrategy.FittedAlignmentIdx), ...
-                             thisInvestigation.Evaluations{i,j}.Models );
-        alignments{i,j} = double(offsetSDs)/thisInvestigation.Evaluations{i,j}.TrainingDataset.SampleFreq;
+    for j = 1:numMethods(i)
 
-        spreadMean(i,j) = mean( offsetSDs );
-        spreadSE(i,j) = std( offsetSDs );
-        spreadP05(i,j) = prctile( offsetSDs, 5 );
-        spreadP95(i,j) = prctile( offsetSDs, 95 );
+        thisEvaluation = thisInvestigation.Evaluations{i,j};
+        if isempty( thisEvaluation )
+            continue
+        end
+
+        % extract the alignment shifts in terms of time indices
+        offsetSDs = cellfun(@(mdl) std(mdl.EncodingStrategy.FittedAlignmentIdx), ...
+                            thisEvaluation.Models);
+        % convert to seconds
+        offsetSDs = double(offsetSDs)/thisEvaluation.TrainingDataset.SampleFreq;
+
+        % compile arrays for box plot
+        offsetSpreads{i} = [offsetSpreads{i}; offsetSDs(:)];
+        groups{i} = [groups{i}; repmat( methods(j), length(offsetSDs), 1)];
 
     end
 end
 
-bar( spreadMean )
-boxplot( alignments )
+% Plotting with refined approach
+fig = figure;
+fig.Position(3) = 2*300 + 50;
+fig.Position(4) = 300;
+layout = tiledlayout( 1, 2, TileSpacing='loose' );
+ax = gobjects( 2, 1 );
+for i = 1:2
+    ax(i) = nexttile( layout );
+    boxplot( offsetSpreads{i}, groups{i}, ...
+             GroupOrder = methods(1:numMethods(i)), ...
+             Notch = 'on', ...
+             Symbol = 'o' );
+
+    title( ax(i), names{i} );
+    xlabel( ax(i), 'Alignment Methods');
+    ylabel( ax(i), 'Offset SD Spread (s)');
+end
+
+% determine the global y-axis limits
+globalYMin = min(cellfun(@(x) min(x), offsetSpreads));
+globalYMax = max(cellfun(@(x) max(x), offsetSpreads));
+
+% calculate a suitable range and tick marks for the y-axis
+tickInterval = 0.2; 
+yTicks = floor(globalYMin):tickInterval:ceil(globalYMax); 
+
+% Adjust each subplot's y-axis
+for i = 1:2
+    ax(i).YTick = yTicks;
+    ytickformat( ax(i), '%.1f' );
+end

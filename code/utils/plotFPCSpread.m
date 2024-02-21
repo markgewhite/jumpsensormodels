@@ -10,43 +10,46 @@ function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle, tRange )
     
     % setup the plot
     fig = figure;
-    fig.Position(3) = (numComp+1)*200 + 100;
-    fig.Position(4) = 200;
+    fig.Position(3) = (numComp)*250 + 100;
+    fig.Position(4) = 275;
 
-    layout = tiledlayout( 1, numComp+1, TileSpacing ='compact' );
-    ax = gobjects( numComp+1, 1 );
+    layout = tiledlayout( 1, numComp, TileSpacing ='compact' );
+    ax = gobjects( numComp, 1 );
     cmap = lines(4);
     
-    for i = 0:numComp
+   % get the mean curves for each fit 
+    XMeans = cellfun( @(mdl) eval_fd(mdl.EncodingStrategy.TSpan, ...
+                                     mdl.EncodingStrategy.MeanFd), ...
+                      thisEvaluation.Models, ...
+                      UniformOutput=false );
+    % align the curves
+    [XMeans, offsets] = alignSignals( padData(XMeans, Location='Right') );
+    
+    % set the time series
+    t = linspace( 0, size(XMeans,1)-1, size(XMeans,1) )/thisEvaluation.TrainingDataset.SampleFreq;
 
-        if i==0
-            % get the mean curves for each fit 
-            X = cellfun( @(mdl) eval_fd( mdl.EncodingStrategy.TSpan, ...
-                                             mdl.EncodingStrategy.MeanFd ), ...
-                         thisEvaluation.Models, ...
-                         UniformOutput=false );
-            % align the curves
-            [X, offsets] = alignSignals( padData(X, Location='Right') );
-            c = cmap(1,:);
-            caption = 'Mean';
+    for i = 1:numComp
         
-        else
-            % get the component curves for each fit
-            X = cellfun( @(mdl) eval_fd( mdl.EncodingStrategy.TSpan, ...
-                                             mdl.EncodingStrategy.CompFd(i) ), ...
-                        thisEvaluation.Models, ...
-                        UniformOutput=false );
-            % align them using the same offestes as those of the mean
-            X = alignSignals( padData(X, Location='Right'), offsets );
-            c = cmap(2,:);
-            caption = ['Component ' num2str(i)];
-        end
+        % get the component curves for each fit
+        XComps = cellfun( @(mdl) eval_fd(mdl.EncodingStrategy.TSpan, ...
+                                         mdl.EncodingStrategy.CompFd(i)), ...
+                            thisEvaluation.Models, ...
+                            UniformOutput=false );
+        % align them using the same offests as those of the mean
+        XComps = alignSignals( padData(XComps, Location='Right'), offsets );
+
+        % compute the component curves +/- 2SDs (standardised scores SD=1)
+        XPlusComps = XMeans + 2*XComps;
+        XMinusComps = XMeans - 2*XComps;
+
+        caption = ['Component ' num2str(i)];
     
         % plot the components
         thisAxis = nexttile( layout );
 
-        t = linspace( 0, size(X,1)-1, size(X,1) )/thisEvaluation.TrainingDataset.SampleFreq;
-        plotSpread( thisAxis, X, t, c );
+        plotSpread( thisAxis, XPlusComps, t, cmap(2,:), mean(XMeans,2) );
+        plotSpread( thisAxis, XMinusComps, t, cmap(3,:), [], mean(XMeans,2) );
+        plotSpread( thisAxis, XMeans, t, cmap(1,:) );
 
         % format plot
         xlabel( thisAxis, 'Time (s)' );

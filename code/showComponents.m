@@ -9,7 +9,7 @@ path = [path '/../results/'];
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
-setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMLanding';
+setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
 setup.model.args.ContinuousEncodingArgs.NumComponents = numComp;
 
 eval.CVType = 'KFold';

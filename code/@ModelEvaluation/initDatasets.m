@@ -21,9 +21,7 @@ function initDatasets( self, setup )
                                             argsCell{:} ); %#ok<*MCNPN> 
 
             self.ValidationDataset = setup.data.class( 'Validation', ...
-                                                       argsCell{:}, ...
-                    PaddingLength = self.TrainingDataset.Padding.Length, ...
-                    Lambda = self.TrainingDataset.FDA.Lambda );
+                                                       argsCell{:} );
             self.Partitions = [];
             self.KFolds = [];
             self.KFoldRepeats = [];

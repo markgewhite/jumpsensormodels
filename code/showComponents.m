@@ -9,7 +9,7 @@ path = [path '/../results/'];
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
-setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
+setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
 setup.model.args.ContinuousEncodingArgs.NumComponents = numComp;
 
 eval.CVType = 'KFold';
@@ -30,12 +30,14 @@ contEvalDelsys = ModelEvaluation( 'ContVariationDelsys', path, setup, args{:} );
 %% plot the spread in X across the folds
 titleSuffix = ['(Continuous: Alignment = '  ...
                setup.model.args.ContinuousEncodingArgs.AlignmentMethod ')'];
-tRange = [ 8, 11 ];
+
+tRngSmart = [4 7]; %[ 9, 11 ];
+tRngDelsys = [2 4]; %[ 7, 10 ];
 
 figFPCSmart = plotFPCSpread( contEvalSmart, numComp, ...
-                             ['Smartphone ' titleSuffix], [9 11] );
+                             ['Smartphone ' titleSuffix], tRngSmart );
 figFPCDelsys = plotFPCSpread( contEvalDelsys, numComp, ...
-                              ['Delsys ' titleSuffix], [7 10] );
+                              ['Delsys ' titleSuffix], tRngDelsys );
 
 
 

@@ -25,6 +25,7 @@ function [fig, ax] = plotDistributions( X, names, idx, figTitle, figID )
             [pX, mu, sigma] = plotPDFSpread( ax{i}, X, idx(i) );
         else
             [pY, pX] = kde( X(:,idx(i)) );
+            pY = pY./sum(pY);
             mu = mean( X(:,idx(i)) );
             sigma = std( X(:,idx(i)) );
 
@@ -34,12 +35,15 @@ function [fig, ax] = plotDistributions( X, names, idx, figTitle, figID )
 
         % generate equivalent normal distribution
         nY = (1/(sigma*sqrt(2*pi)))*exp(-.5*(((pX-mu)/sigma).^2));
+        nY = nY./sum(nY);
         plot( ax{i}, pX, nY, '--', LineWidth = 1.5, color = 'k' );
         hold( ax{i}, 'off' );
 
         % format plot
         xlabel( ax{i}, names(idx(i)) );
         ylabel( ax{i}, 'Density' );
+        ytickformat( ax{i}, '%.2f' );
+        finalisePlot( ax{i} );
 
     end
 
@@ -65,7 +69,8 @@ function [pNormX, mu, sigma] = plotPDFSpread( ax, X, idx )
 
     % fit PDFs for each set
     for i = 1:numFits
-        pNormY(:,i) = kde( X{i}(:,idx), EvaluationPoints = pNormX );
+        pY = kde( X{i}(:,idx), EvaluationPoints = pNormX );
+        pNormY(:,i) = pY./sum(pY);
     end
 
     allX = cat(1, X{:} );

@@ -1,15 +1,17 @@
-function [fig, ax] = plotDistributions( X, names, idx, figTitle )
+function [fig, ax] = plotDistributions( X, names, idx, figTitle, figID )
     % Plot distributions for specified variable indices
     arguments
         X           {mustBeA(X, {'double', 'cell'})}
         names       string
         idx         double {mustBePositive, mustBeInteger}
         figTitle    string = ""
+        figID       string = ""
     end
 
     numPlots = length(idx);
 
     fig = figure;
+    fontname( fig, 'Arial' );
     fig.Position(3) = numPlots*200 + 100;
     fig.Position(4) = 200;
     layout = tiledlayout( 1, numPlots, TileSpacing= 'compact' );
@@ -41,7 +43,7 @@ function [fig, ax] = plotDistributions( X, names, idx, figTitle )
 
     end
 
-    sgtitle( fig, figTitle );
+    leftSuperTitle( fig, figTitle, figID );
 
 end
 

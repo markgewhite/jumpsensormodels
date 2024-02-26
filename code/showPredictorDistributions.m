@@ -2,7 +2,11 @@
 
 clear;
 
-varSelection = 1:5;
+%varSelection = 1:5;
+varSelection = 1:26;
+
+path = fileparts( which('code/showPredictorDistributions.m') );
+path = [path '/../results/'];
 
 % load data
 smartData = SmartphoneDataset( 'Combined' );
@@ -20,9 +24,10 @@ figDDistSmart = plotDistributions( discreteXSmart, ...
 figDDistDelsys = plotDistributions( discreteXDelsys, ...
                                     discreteEncoding.Names, ...
                                     varSelection, ...
-                                    "Delsys dataset (discrete encoding)", "b" );
+                                    "Delsys dataset (discrete encoding)", "c" );
 
 % Continuous encodings
+varSelection = 1:15;
 numComp = max(varSelection);
 contEncodingSmart = FPCAEncodingStrategy( NumComponents = numComp );
 contEncodingSmart = contEncodingSmart.fit( smartData );
@@ -35,17 +40,21 @@ contXDelsys = contEncodingDelsys.extractFeatures( delsysData );
 figCDistSmart = plotDistributions( contXSmart, ...
                                    contEncodingSmart.Names, ...
                                    varSelection, ...
-                                   "Smartphone dataset (continuous encoding)", "c" );
+                                   "Smartphone dataset (continuous encoding)", "b" );
 figCDistDelsys = plotDistributions( contXDelsys, ...
                                     contEncodingDelsys.Names, ...
                                     varSelection, ...
                                     "Delsys dataset (continuous encoding)", "d" );
 
+if length(varSelection) > 5
+    saveGraphicsObject( figDDistSmart, path, 'DiscDistSmartPredictors2' );
+    saveGraphicsObject( figDDistDelsys, path, 'DiscDistDelsysPredictors2' );
+    saveGraphicsObject( figCDistSmart, path, 'ContDistSmartPredictors2' );
+    saveGraphicsObject( figCDistDelsys, path, 'ContDistDelsysPredictors2' );
+end
+
 
 %% Variations arising from subsampling
-path = fileparts( which('code/showPredictorDistributions.m') );
-path = [path '/../results/'];
-
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
 setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';

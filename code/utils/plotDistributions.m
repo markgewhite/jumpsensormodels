@@ -9,12 +9,20 @@ function [fig, ax] = plotDistributions( X, names, idx, figTitle, figID )
     end
 
     numPlots = length(idx);
+    if numPlots>5
+        c = 5;
+        r = ceil( numPlots/c );
+    else
+        r = 1;
+        c = numPlots;
+    end
 
     fig = figure;
     fontname( fig, 'Arial' );
-    fig.Position(3) = numPlots*200 + 100;
-    fig.Position(4) = 200;
-    layout = tiledlayout( 1, numPlots, TileSpacing= 'compact' );
+    fig.Position(3) = c*200 + 100;
+    fig.Position(4) = 150*r + 50;
+
+    layout = tiledlayout( r, c, TileSpacing= 'compact' );
 
     ax = cell( numPlots, 1 );
     for i = 1:numPlots

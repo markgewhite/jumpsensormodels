@@ -262,18 +262,22 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             alignedX = zeros( sigLength, numDim, numSignals );
             offsets = zeros( numSignals, 1 );
             lmIdx = zeros( numSignals, 1 );
-            halfWidthIdx = fix( size(X,1)/2 );
             if isempty( refIdx )
                 refIdx = lmIdx;
             end
         
+            % find all the landmarks
             for i = 1:numSignals
-            
                 lmIdx(i) = self.findLandmark( squeeze(X(:,:,i)), refIdx(i) );
-        
+            end
+            lmMeanIdx = round(mean(lmIdx), 0);
+
+            % shift the signals to align with the mean position
+            for i = 1:numSignals
+
                 if lmIdx(i) > 0
                     % Adjust the signal based on the offset. This is a simple shift.
-                    offsets(i) = halfWidthIdx - lmIdx(i);
+                    offsets(i) = lmMeanIdx - lmIdx(i);
                     if offsets(i) > 0
                         alignedX(:,:,i) = [X(1,:,i).*ones(offsets(i), numDim); 
                                            X(1:end-offsets(i),:,i)];

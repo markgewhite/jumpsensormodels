@@ -47,22 +47,23 @@ for i = 1:2
         end
 
         % extract the alignment shifts in terms of time indices
-        offsetSDs = cellfun(@(mdl) std(mdl.EncodingStrategy.FittedAlignmentIdx), ...
+        offsetRMS = cellfun(@(mdl) sqrt(mean(mdl.EncodingStrategy.FittedAlignmentIdx.^2)), ...
                             thisEvaluation.Models);
         % convert to seconds
-        offsetSDs = double(offsetSDs)/thisEvaluation.TrainingDataset.SampleFreq;
+        offsetRMS = double(offsetRMS)/thisEvaluation.TrainingDataset.SampleFreq;
 
         % compile arrays for box plot
-        offsetSpreads{i} = [offsetSpreads{i}; offsetSDs(:)];
-        groups{i} = [groups{i}; repmat( methods(j), length(offsetSDs), 1)];
+        offsetSpreads{i} = [offsetSpreads{i}; offsetRMS(:)];
+        groups{i} = [groups{i}; repmat( methods(j), length(offsetRMS), 1)];
 
     end
 end
 
-% Plotting with refined approach
+%% Plotting with refined approach
 fig = figure;
-fig.Position(3) = 2*300 + 50;
-fig.Position(4) = 300;
+fontname( fig, 'Arial' );
+fig.Position(3) = 800;
+fig.Position(4) = 350;
 layout = tiledlayout( 1, 2, TileSpacing='loose' );
 ax = gobjects( 2, 1 );
 for i = 1:2
@@ -74,7 +75,7 @@ for i = 1:2
 
     title( ax(i), names{i} );
     xlabel( ax(i), 'Alignment Methods');
-    ylabel( ax(i), 'Offset SD Spread (s)');
+    ylabel( ax(i), 'Root Mean Squared Offsets (s)');
 end
 
 % determine the global y-axis limits
@@ -82,7 +83,7 @@ globalYMin = min(cellfun(@(x) min(x), offsetSpreads));
 globalYMax = max(cellfun(@(x) max(x), offsetSpreads));
 
 % calculate a suitable range and tick marks for the y-axis
-tickInterval = 0.2; 
+tickInterval = 0.5; 
 yTicks = floor(globalYMin):tickInterval:ceil(globalYMax); 
 
 % Adjust each subplot's y-axis
@@ -90,3 +91,5 @@ for i = 1:2
     ax(i).YTick = yTicks;
     ytickformat( ax(i), '%.1f' );
 end
+
+saveGraphicsObject( fig, path, 'OffsetSpread' );

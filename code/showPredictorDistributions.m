@@ -2,8 +2,19 @@
 
 clear;
 
-varSelection = 1:5;
-%varSelection = 1:26;
+doc = input('Document = ', 's');
+switch doc
+    case 'Main'
+        varSelection = 1:5;
+        compSelection = 1:5;
+        figLetters = 'abcd';
+    case 'Supp'
+        varSelection = 1:26;
+        compSelection = 1:15;
+        figLetters = 'acbd';
+    otherwise
+        error('Unrecognised doc');
+end
 
 path = fileparts( which('code/showPredictorDistributions.m') );
 path = [path '/../results/'];
@@ -20,15 +31,16 @@ discreteXDelsys = discreteEncoding.extractFeatures( delsysData );
 figDDistSmart = plotDistributions( discreteXSmart, ...
                                    discreteEncoding.Names, ...
                                    varSelection, ...
-                                   "Smartphone dataset (discrete encoding)", "a" );
+                                   "Smartphone dataset (discrete encoding)", ...
+                                   figLetters(1) );
 figDDistDelsys = plotDistributions( discreteXDelsys, ...
                                     discreteEncoding.Names, ...
                                     varSelection, ...
-                                    "Delsys dataset (discrete encoding)", "c" );
+                                    "Delsys dataset (discrete encoding)", ...
+                                    figLetters(2) );
 
 % Continuous encodings
-%varSelection = 1:15;
-numComp = max(varSelection);
+numComp = max(compSelection);
 contEncodingSmart = FPCAEncodingStrategy( NumComponents = numComp );
 contEncodingSmart = contEncodingSmart.fit( smartData );
 contXSmart = contEncodingSmart.extractFeatures( smartData );
@@ -39,19 +51,27 @@ contXDelsys = contEncodingDelsys.extractFeatures( delsysData );
 
 figCDistSmart = plotDistributions( contXSmart, ...
                                    contEncodingSmart.Names, ...
-                                   varSelection, ...
-                                   "Smartphone dataset (continuous encoding)", "b" );
+                                   compSelection, ...
+                                   "Smartphone dataset (continuous encoding)", ...
+                                   figLetters(3) );
 
 figCDistDelsys = plotDistributions( contXDelsys, ...
                                     contEncodingDelsys.Names, ...
-                                    varSelection, ...
-                                    "Delsys dataset (continuous encoding)", "d" );
+                                    compSelection, ...
+                                    "Delsys dataset (continuous encoding)", ...
+                                    figLetters(4) );
 
-if length(varSelection) > 5
-    saveGraphicsObject( figDDistSmart, path, 'DiscDistSmartPredictors2' );
-    saveGraphicsObject( figDDistDelsys, path, 'DiscDistDelsysPredictors2' );
-    saveGraphicsObject( figCDistSmart, path, 'ContDistSmartPredictors2' );
-    saveGraphicsObject( figCDistDelsys, path, 'ContDistDelsysPredictors2' );
+switch doc
+    case 'Main'
+        saveGraphicsObject( figDDistSmart, path, 'DiscDistSmartPredictors' );
+        saveGraphicsObject( figDDistDelsys, path, 'DiscDistDelsysPredictors' );
+        saveGraphicsObject( figCDistSmart, path, 'ContDistSmartPredictors' );
+        saveGraphicsObject( figCDistDelsys, path, 'ContDistDelsysPredictors' );
+    case 'Supp'
+        saveGraphicsObject( figDDistSmart, path, 'DiscDistSmartPredictors2' );
+        saveGraphicsObject( figDDistDelsys, path, 'DiscDistDelsysPredictors2' );
+        saveGraphicsObject( figCDistSmart, path, 'ContDistSmartPredictors2' );
+        saveGraphicsObject( figCDistDelsys, path, 'ContDistDelsysPredictors2' );
 end
 
 
@@ -59,7 +79,7 @@ end
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
 setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
-setup.model.args.ContinuousEncodingArgs.NumComponents = 10;
+setup.model.args.ContinuousEncodingArgs.NumComponents = numComp;
 
 eval.CVType = 'KFold';
 eval.KFolds = 2;
@@ -85,26 +105,24 @@ contXSmartKFold = cellfun( @(mdl) table2array(mdl.Model.Variables), ...
 
 figCDistVarSmart = plotDistributions( contXSmartKFold, ...
                                       contEncodingSmart.Names, ...
-                                      varSelection, ...
-                                      ['Smartphone dataset ' titleSuffix], "a");
+                                      compSelection, ...
+                                      ['Smartphone dataset ' titleSuffix], figLetters(3) );
 
 contXDelsysKFold = cellfun( @(mdl) table2array(mdl.Model.Variables), ...
                            contEvalDelsys.Models, UniformOutput=false );
 
 figCDistVarDelsys = plotDistributions( contXDelsysKFold, ...
                                        contEncodingDelsys.Names, ...
-                                       varSelection, ...
-                                       ['Delsys dataset ' titleSuffix], "b");
-
-%% Save all figures
-saveGraphicsObject( figDDistSmart, path, 'DiscDistSmartPredictors' );
-saveGraphicsObject( figDDistDelsys, path, 'DiscDistDelsysPredictors' );
-saveGraphicsObject( figCDistSmart, path, 'ContDistSmartPredictors' );
-saveGraphicsObject( figCDistDelsys, path, 'ContDistDelsysPredictors' );
-
-saveGraphicsObject( figCDistVarSmart, path, 'ContVarDistSmartPredictors' );
-saveGraphicsObject( figCDistVarDelsys, path, 'ContVarDistDelsysPredictors' );
-
+                                       compSelection, ...
+                                       ['Delsys dataset ' titleSuffix], figLetters(4));
+switch doc
+    case 'Main'
+        saveGraphicsObject( figCDistVarSmart, path, 'ContVarDistSmartPredictors' );
+        saveGraphicsObject( figCDistVarDelsys, path, 'ContVarDistDelsysPredictors' );
+    case 'Supp'
+        saveGraphicsObject( figCDistVarSmart, path, 'ContVarDistSmartPredictors2' );
+        saveGraphicsObject( figCDistVarDelsys, path, 'ContVarDistDelsysPredictors2' );
+end
 
 
 

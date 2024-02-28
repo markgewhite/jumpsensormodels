@@ -101,7 +101,7 @@ function [pNormX, mu, sigma] = plotPDFSpread( ax, X, idx )
     cmap = lines(1);
     xSpread = [ pNormX; flip(pNormX) ];
     ySpread = [ prc75Y; flip(prc25Y) ];
-    fill( ax, xSpread, ySpread, cmap, FaceAlpha = 0.5, EdgeColor = 'none' );
+    fill( ax, xSpread, ySpread, cmap, FaceAlpha = 0.35, EdgeColor = 'none' );
     hold( ax, 'on' );
 
     plot( ax, pNormX, prc50Y, LineWidth=1.5, Color=cmap );

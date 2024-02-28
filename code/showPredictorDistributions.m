@@ -2,8 +2,8 @@
 
 clear;
 
-%varSelection = 1:5;
-varSelection = 1:26;
+varSelection = 1:5;
+%varSelection = 1:26;
 
 path = fileparts( which('code/showPredictorDistributions.m') );
 path = [path '/../results/'];
@@ -27,7 +27,7 @@ figDDistDelsys = plotDistributions( discreteXDelsys, ...
                                     "Delsys dataset (discrete encoding)", "c" );
 
 % Continuous encodings
-varSelection = 1:15;
+%varSelection = 1:15;
 numComp = max(varSelection);
 contEncodingSmart = FPCAEncodingStrategy( NumComponents = numComp );
 contEncodingSmart = contEncodingSmart.fit( smartData );
@@ -41,6 +41,7 @@ figCDistSmart = plotDistributions( contXSmart, ...
                                    contEncodingSmart.Names, ...
                                    varSelection, ...
                                    "Smartphone dataset (continuous encoding)", "b" );
+
 figCDistDelsys = plotDistributions( contXDelsys, ...
                                     contEncodingDelsys.Names, ...
                                     varSelection, ...

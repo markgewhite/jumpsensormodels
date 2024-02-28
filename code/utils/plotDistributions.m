@@ -1,4 +1,4 @@
-function [fig, ax] = plotDistributions( X, names, idx, figTitle, figID )
+function [fig, ax] = plotDistributions( X, names, idx, figTitle, figID, annotations )
     % Plot distributions for specified variable indices
     arguments
         X           {mustBeA(X, {'double', 'cell'})}
@@ -6,6 +6,7 @@ function [fig, ax] = plotDistributions( X, names, idx, figTitle, figID )
         idx         double {mustBePositive, mustBeInteger}
         figTitle    string = ""
         figID       string = ""
+        annotations string = ""
     end
 
     numPlots = length(idx);
@@ -53,6 +54,13 @@ function [fig, ax] = plotDistributions( X, names, idx, figTitle, figID )
         ytickformat( ax{i}, '%.2f' );
         finalisePlot( ax{i} );
 
+        if annotations~=""
+            text( ax{i}, 0.9*ax{i}.XLim(2), 0.9*ax{i}.YLim(2), ...
+                  annotations(i), ...
+                  HorizontalAlignment = 'right', ...
+                  VerticalAlignment = 'top' );
+        end
+    
     end
 
     leftSuperTitle( fig, figTitle, figID );

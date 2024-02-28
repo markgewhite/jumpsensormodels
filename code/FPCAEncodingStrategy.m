@@ -10,6 +10,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         TSpan               % common timespan for FDA
         MeanFd              % mean curve as a functional data object
         CompFd              % component curves as functional data objects
+        VarProp             % proportion of variance explained
         AlignmentMethod     % method for aligning signals prior to PCA
         AlignmentSignal     % reference signal for alignment
         AlignmentTolerance  % alignment variance tolerance
@@ -104,6 +105,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             % store the model
             self.MeanFd = pcaStruct.meanfd;
             self.CompFd = pcaStruct.harmfd;
+            self.VarProp = pcaStruct.varprop;
 
             self.Fitted = true;
 

@@ -109,13 +109,15 @@ classdef Investigation < handle
         [QTrn, QVal] = getEvaluationValue( self, fld )
 
         [trnTbl, valTbl] = getMeanAndSD( self, args )
+
+        results = getMultiVarTable( self, flds, set, args )
         
         report = getResults( self )
 
         [model, data] = linearModel( self, outcome, args )
 
         obj = makeBoxPlot( self, ax, fld, set )
-        
+
         [model, data] = mixedModel( self, outcome, args )
 
         reload( self )

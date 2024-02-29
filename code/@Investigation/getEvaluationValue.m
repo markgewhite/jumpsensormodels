@@ -8,7 +8,11 @@ function [QTrn, QVal] = getEvaluationValue( self, fld )
     QTrn = cellfun( @(mdl) mdl.(fld), ...
                     self.TrainingResults.Models , 'UniformOutput', false);
     
-    QVal = cellfun( @(mdl) mdl.(fld), ...
+    try
+        QVal = cellfun( @(mdl) mdl.(fld), ...
                     self.ValidationResults.Models , 'UniformOutput', false);
+    catch
+        QVal = [];
+    end
 
 end

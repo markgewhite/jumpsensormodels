@@ -114,9 +114,11 @@ classdef Investigation < handle
 
         [model, data] = linearModel( self, outcome, args )
 
-        reload( self )
-
+        obj = makeBoxPlot( self, ax, fld, set )
+        
         [model, data] = mixedModel( self, outcome, args )
+
+        reload( self )
 
         run( self )
 

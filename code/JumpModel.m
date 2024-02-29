@@ -20,6 +20,11 @@ classdef JumpModel < handle
         Y                   % ground truth structure Y values
         YHat                % predictions structure YHat values
         IsRankDeficient     % flag indicating rank deficiency
+        EvaluateOffsets     % whether to compute stats on signal offsets
+        StoreIndividualOffsets % store signal offsets
+        StoreIndividualBetas% store linear models' beta coefficients
+        StoreIndividualVIFs % store measures of betas' multicollinearity
+        StoreIndividualKSs  % store measures of betas' normality
     end
 
     methods
@@ -27,19 +32,24 @@ classdef JumpModel < handle
         function self = JumpModel( thisDataset, args )
             % Initialize the model
             arguments
-                thisDataset             ModelDataset
-                args.Name               string = "[ModelName]"
-                args.Path               string = ""
-                args.EncodingType       string ...
+                thisDataset                 ModelDataset
+                args.Name                   string = "[ModelName]"
+                args.Path                   string = ""
+                args.EncodingType           string ...
                     {mustBeMember( args.EncodingType, ...
                             {'Discrete', 'Continuous'})} = 'Continuous'
                 args.DiscreteEncodingArgs   struct
                 args.ContinuousEncodingArgs struct
-                args.ModelType          string ...
+                args.ModelType              string ...
                     {mustBeMember( args.ModelType, ...
                             {'Linear', 'Ridge', 'Lasso', ...
                              'LinearOpt', 'SVM', 'XGBoost'})} = 'Linear'
-                args.ModelArgs          struct
+                args.ModelArgs              struct
+                args.EvaluateOffsets        logical = false
+                args.StoreIndividualOffsets logical = false
+                args.StoreIndividualBetas   logical = false
+                args.StoreIndividualVIFs    logical = false
+                args.StoreIndividualKSs     logical = false
             end
 
             % set properties based on inputs
@@ -49,6 +59,11 @@ classdef JumpModel < handle
             self.NumChannels = thisDataset.NumChannels;
             self.Path = args.Path;
             self.ModelType = args.ModelType;
+            self.EvaluateOffsets = args.EvaluateOffsets;
+            self.StoreIndividualOffsets = args.StoreIndividualOffsets;            
+            self.StoreIndividualBetas = args.StoreIndividualBetas;
+            self.StoreIndividualVIFs = args.StoreIndividualVIFs;
+            self.StoreIndividualKSs = args.StoreIndividualKSs;
 
             if isfield( args, 'ModelArgs' )
                 self.ModelArgs = args.ModelArgs;
@@ -185,16 +200,20 @@ classdef JumpModel < handle
             % re-scaled loss
             eval.RMSE = eval.StdRMSE*self.YStd;
 
-            % store the offsets
-            eval.OffsetMean = mean( offsets );
-            eval.OffsetSD = std( offsets );
-            eval.OffsetSDRatio = eval.OffsetSD/std(thisDataset.ReferenceIdx);
-            eval.OffsetCV = eval.OffsetSD./eval.OffsetMean;
-            eval.OffsetMax = max( offsets );
-            eval.OffsetMin = min( offsets );
+            if self.EvaluateOffsets
+                % store the offsets
+                eval.OffsetMean = mean( offsets );
+                eval.OffsetSD = std( offsets );
+                eval.OffsetSDRatio = eval.OffsetSD/std(thisDataset.ReferenceIdx);
+                eval.OffsetCV = eval.OffsetSD./eval.OffsetMean;
+                eval.OffsetMax = max( offsets );
+                eval.OffsetMin = min( offsets );
+            end
 
-            for i = 1:length(offsets)
-                eval.(['Offsets' num2str(i)]) = offsets(i);
+            if self.StoreIndividualOffsets
+                for i = 1:length(offsets)
+                    eval.(['Offsets' num2str(i)]) = offsets(i);
+                end
             end
 
             % F-statistic (if linear)
@@ -225,19 +244,25 @@ classdef JumpModel < handle
                         eval.KSNotNormalProp = sum( p<0.05 )/(self.Model.NumCoefficients-1);
                         eval.KSMedian = median(KS);
 
-                        % record the standardized beta coefficients
-                        for i = 1:self.Model.NumCoefficients
-                            eval.(['Beta' num2str(i)]) = self.Model.Coefficients.Estimate(i);
+                        if self.StoreIndividualBetas
+                            % record the standardized beta coefficients
+                            for i = 1:self.Model.NumCoefficients
+                                eval.(['Beta' num2str(i)]) = self.Model.Coefficients.Estimate(i);
+                            end
                         end
-                        
-                        % store the VIFs as well
-                        for i = 1:self.Model.NumCoefficients-1
-                            eval.(['VIF' num2str(i)]) = modelVIFs(i);
+
+                        if self.StoreIndividualVIFs
+                            % store the VIFs as well
+                            for i = 1:self.Model.NumCoefficients-1
+                                eval.(['VIF' num2str(i)]) = modelVIFs(i);
+                            end
                         end
-                        
-                        % store the KS too
-                        for i = 1:self.Model.NumCoefficients-1
-                            eval.(['KS' num2str(i)]) = KS(i);
+
+                        if self.StoreIndividualKSs
+                            % store the KS too
+                            for i = 1:self.Model.NumCoefficients-1
+                                eval.(['KS' num2str(i)]) = KS(i);
+                            end
                         end
 
                     case {'Ridge', 'Lasso'}

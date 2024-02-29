@@ -1,11 +1,11 @@
-function results = getMultiVarTable( self, flds, set, format )
+function results = getMultiVarTable( self, flds, set, precision )
     % Build table of multiple fields showing mean and SD as string
     arguments
         self                Investigation
         flds                string
         set                 ...
             {mustBeMember(set, {'Training', 'Validation'})} = 'Training'
-        format              string = '%1.3f'
+        precision           double {mustBeInteger, mustBePositive} = 3
     end
 
     numFields = length(flds);
@@ -16,7 +16,7 @@ function results = getMultiVarTable( self, flds, set, format )
     p = self.NumParameters;
 
     % define the formatting function
-    formatFcn = @(s) string(num2str( s, format ));
+    formatFcn = @(s) string(num2str( s, precision ));
 
     % get either the training or validation results
     reference = self.([set 'Results']);

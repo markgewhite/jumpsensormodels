@@ -19,7 +19,7 @@ function plotSpread( ax, X, t, c, lb, ub )
     % draw the shading spread of +/- SD
     xSpread = [ t flip(t) ];
     ySpread = [ meanX+stdX; flip(meanX-stdX) ];
-    fill( ax, xSpread, ySpread, c, FaceAlpha = 0.5, EdgeColor = 'none' );
+    fill( ax, xSpread, ySpread, c, FaceAlpha = 0.30, EdgeColor = 'none' );
     hold( ax, 'on' );
 
     if ~isempty(lb) || ~isempty(ub)
@@ -28,9 +28,7 @@ function plotSpread( ax, X, t, c, lb, ub )
         else
             ySpread = [ ub; flip(meanX+stdX) ];
         end
-        fill( ax, xSpread, ySpread, c, FaceAlpha = 0.25, EdgeColor = 'none' );
+        fill( ax, xSpread, ySpread, c, FaceAlpha = 0.10, EdgeColor = 'none' );
     end
-
-    plot( ax, t, meanX, LineWidth=2.5, Color=c );
 
 end

@@ -10,7 +10,7 @@ function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle, tRange )
     
     % setup the plot
     fig = figure;
-    fig.Position(3) = (numComp)*250 + 100;
+    fig.Position(3) = (numComp)*300 + 100;
     fig.Position(4) = 275;
 
     layout = tiledlayout( 1, numComp, TileSpacing ='compact' );
@@ -24,6 +24,9 @@ function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle, tRange )
                       UniformOutput=false );
     % align the curves
     [XMeans, offsets] = alignSignals( padData(XMeans, Location='Right') );
+
+    % add gravity back to be more intuitive
+    XMeans = XMeans + 9.81;
     
     % set the time series
     t = linspace( 0, size(XMeans,1)-1, size(XMeans,1) )/thisEvaluation.TrainingDataset.SampleFreq;
@@ -48,8 +51,12 @@ function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle, tRange )
         thisAxis = nexttile( layout );
 
         plotSpread( thisAxis, XPlusComps, t, cmap(2,:), mean(XMeans,2) );
-        plotSpread( thisAxis, XMinusComps, t, cmap(3,:), [], mean(XMeans,2) );
+        plotSpread( thisAxis, XMinusComps, t, cmap(3,:), mean(XMeans,2) );
         plotSpread( thisAxis, XMeans, t, cmap(1,:) );
+
+        plot( thisAxis, t, mean(XPlusComps,2), LineWidth=2.5, Color=cmap(2,:) );
+        plot( thisAxis, t, mean(XMinusComps,2), LineWidth=2.5, Color=cmap(3,:) );
+        plot( thisAxis, t, mean(XMeans,2), LineWidth=2.5, Color=cmap(1,:) );
 
         % format plot
         xlabel( thisAxis, 'Time (s)' );

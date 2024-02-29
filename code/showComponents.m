@@ -9,7 +9,7 @@ path = [path '/../results/'];
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
-setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'XCMeanConv';
+setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
 setup.model.args.ContinuousEncodingArgs.NumComponents = numComp;
 
 eval.CVType = 'KFold';
@@ -31,13 +31,16 @@ contEvalDelsys = ModelEvaluation( 'ContVariationDelsys', path, setup, args{:} );
 titleSuffix = ['(Continuous: Alignment = '  ...
                setup.model.args.ContinuousEncodingArgs.AlignmentMethod ')'];
 
-tRngSmart = [4 7]; %[ 9, 11 ];
-tRngDelsys = [2 4]; %[ 7, 10 ];
+tRngSmart = [3 6]; %[ 9, 11 ];
+tRngDelsys = [2 5]; %[ 7, 10 ];
 
 figFPCSmart = plotFPCSpread( contEvalSmart, numComp, ...
                              ['Smartphone ' titleSuffix], tRngSmart );
 figFPCDelsys = plotFPCSpread( contEvalDelsys, numComp, ...
                               ['Delsys ' titleSuffix], tRngDelsys );
+
+saveGraphicsObject( figFPCSmart, path, 'SmartComponents' );
+saveGraphicsObject( figFPCDelsys, path, 'DelsysComponents' );
 
 
 

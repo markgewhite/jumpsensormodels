@@ -2,10 +2,11 @@ function exportTableToLatex( tbl, filename )
     % Export a table to latex format - written by GPT4
     arguments
         tbl         table
-        filename    string
+        filename    char
     end
 
     % Open file to write
+    filename = [filename '.tex'];
     fid = fopen(filename, 'w');
     
     % Check if file is opened successfully

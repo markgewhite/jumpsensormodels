@@ -13,17 +13,18 @@ setup.model.args.StoreIndividualVIFs = true;
 
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;
-setup.eval.KFoldRepeats = 5;
+setup.eval.KFoldRepeats = 25;
 setup.eval.RandomSeed = 1234;
+setup.eval.InParallel = true;
 
 parameters = [ "model.args.EncodingType", ...
                "data.class" ];
 values = {{'Discrete', 'Continuous'}, ...
           {@SmartphoneDataset, @DelsysDataset}};
 
-metrics = ["StdRMSE", "RMSE", "RSquared", "Shrinkage", "CookMeanOutlierProp", "VIFHighProp"];
+metrics = ["StdRMSE", "FStat", "RSquared", "Shrinkage", "CookMeanOutlierProp", "VIFHighProp"];
 
-myInvestigation = ParallelInvestigation( 'LinearModel', path, parameters, values, setup );
+myInvestigation = Investigation( 'LinearModel', path, parameters, values, setup );
 
 myInvestigation.run;
 

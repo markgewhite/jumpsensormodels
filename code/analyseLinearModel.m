@@ -16,6 +16,7 @@ setup.eval.KFolds = 2;
 setup.eval.KFoldRepeats = 5;
 setup.eval.RandomSeed = 1234;
 setup.eval.InParallel = true;
+setup.eval.RetainAllParameters = true;
 
 parameters = [ "model.args.EncodingType", ...
                "data.class" ];

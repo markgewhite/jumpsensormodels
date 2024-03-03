@@ -18,11 +18,14 @@ function aggrP = calcCVParameters( models, group, set )
         P = zeros( [nModels fldDim] );
         for k = 1:nModels
             if isfield( models{k}.(group).(set), fields{i} )
-               P(k,:,:,:) = models{k}.(group).(set).(fields{i});
+                P(k,:,:,:) = models{k}.(group).(set).(fields{i});
+            else
+                P(k,:,:,:) = NaN;
             end
         end
-        aggrP.Mean.(fields{i}) = squeeze(mean(P,1));
-        aggrP.SD.(fields{i}) = squeeze(std(P,1));
+        aggrP.Mean.(fields{i}) = squeeze(mean(P, 1, 'omitnan'));
+        aggrP.SD.(fields{i}) = squeeze(std(P,1, 'omitnan'));
+        aggrP.All.(fields{i}) = P;
 
     end
 

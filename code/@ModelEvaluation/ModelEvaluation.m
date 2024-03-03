@@ -17,6 +17,7 @@ classdef ModelEvaluation < handle
         LossFcns            % array of loss function objects
         CVLoss              % structure of cross-validated losses
         CVTiming            % structure of cross-validated execution times
+        RetainAllParameters % whether to retain all parameter values in summary
         RandomSeed          % for reproducibility
         RandomSeedResets    % whether to reset the seed for each model
         InParallel          % whether to run the evaluation in parallel
@@ -41,6 +42,7 @@ classdef ModelEvaluation < handle
                 args.KFoldRepeats       double ...
                         {mustBeInteger, mustBePositive} = 1
                 args.HasIdenticalPartitions logical = false
+                args.RetainAllParameters logical = false;
                 args.RandomSeed         double ...
                         {mustBeInteger, mustBePositive} = []
                 args.RandomSeedResets   logical = false;
@@ -58,6 +60,7 @@ classdef ModelEvaluation < handle
             self.KFolds = args.KFolds;
             self.KFoldRepeats = args.KFoldRepeats;
             self.HasIdenticalPartitions = args.HasIdenticalPartitions;
+            self.RetainAllParameters = args.RetainAllParameters;
             self.RandomSeed = args.RandomSeed;
             self.RandomSeedResets = args.RandomSeedResets;
             self.InParallel = args.InParallel;

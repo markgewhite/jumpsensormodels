@@ -108,11 +108,15 @@ classdef Investigation < handle
 
         [QTrn, QVal] = getEvaluationValue( self, fld )
 
+        grid = getGridIndices( self, i )
+
         [trnTbl, valTbl] = getMeanAndSD( self, args )
 
         results = getMultiVarTable( self, flds, set, args )
         
         report = getResults( self )
+
+        value = getResultArray( self, fld, set )
 
         [model, data] = linearModel( self, outcome, args )
 

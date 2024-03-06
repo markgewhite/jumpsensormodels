@@ -33,9 +33,8 @@ results = myInvestigation.getMultiVarTable( metrics );
 exportTableToLatex( results, fullfile(path, 'LinearModelStats') );
 
 %% create box plots for the beta coefficients
-vars = myInvestigation.Evaluations{1}.Models{1}.Model.CoefficientNames(2:end);
-vars = strrep(vars, 'x', 'Beta');
-values = myInvestigation.getResultArray( vars );
+titles = ["Smartphone (Discrete)", "Smartphone (Continuous)", ...
+          "Delsys (Discrete)", "Delsys (Continuous)"];
 
 fig = figure;
 fontname( fig, 'Arial' );
@@ -45,11 +44,20 @@ layout = tiledlayout( 2, 2, TileSpacing='loose' );
 ax = gobjects( 4, 1 );
 for i = 1:4
 
+    thisEvaluation = myInvestigation.Evaluations{i};
+
+    vars = thisEvaluation.Models{1}.Model.CoefficientNames(2:end);
+    vars = strrep(vars, 'x', 'Beta');
+
+    values = thisEvaluation.getResultArray(vars);
+
     ax(i) = nexttile(layout);
 
-    boxplot( ax(i), squeeze(values(:,i,:)) );
-    ylim( ax(i), [-1.5 1.5] );
-    title( ax(i), myInvestigation.EvaluationNames(i) );
+    boxplot( ax(i), values, PlotStyle='compact', BoxStyle='filled' );
+    ylim( ax(i), [-2 2] );
+    title( ax(i), titles(i) );
+    xlabel( ax(i), 'Predictors' );
+    ylabel( ax(i), 'Standardised Beta' );
 
 end
 

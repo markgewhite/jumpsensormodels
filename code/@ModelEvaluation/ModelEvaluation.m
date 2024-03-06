@@ -110,6 +110,8 @@ classdef ModelEvaluation < handle
 
         % methods
 
+        values = getResultArray( self, flds, set )
+
         save( self )
 
         saveReport( self )

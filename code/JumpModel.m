@@ -6,8 +6,10 @@ classdef JumpModel < handle
         DatasetName         % name of the dataset
         NumObs              % number of observations
         NumChannels         % number of data channels
+        NumPredictors       % number of predictors
         Path                % file path for storing outputs
         EncodingStrategy    % encoding strategy
+        PredictorNames      % name of predictors used in the model
         ZMean               % training encoding means
         ZStd                % training encoding standard deviations
         YMean               % training outcome mean
@@ -42,9 +44,11 @@ classdef JumpModel < handle
                 args.ContinuousEncodingArgs struct
                 args.ModelType              string ...
                     {mustBeMember( args.ModelType, ...
-                            {'Linear', 'Ridge', 'Lasso', ...
+                            {'Linear', 'Ridge', 'Lasso', 'LassoSelect', ...
                              'LinearOpt', 'SVM', 'XGBoost'})} = 'Linear'
                 args.ModelArgs              struct
+                args.NumPredictors          double ...
+                    {mustBeInteger, mustBePositive} = []
                 args.EvaluateOffsets        logical = false
                 args.StoreIndividualOffsets logical = false
                 args.StoreIndividualBetas   logical = false
@@ -57,6 +61,7 @@ classdef JumpModel < handle
             self.DatasetName = thisDataset.Name;
             self.NumObs = thisDataset.NumObs;
             self.NumChannels = thisDataset.NumChannels;
+            self.NumPredictors = args.NumPredictors;
             self.Path = args.Path;
             self.ModelType = args.ModelType;
             self.EvaluateOffsets = args.EvaluateOffsets;
@@ -119,30 +124,40 @@ classdef JumpModel < handle
             self.YStd = std( thisDataset.Y );
             normY = (thisDataset.Y - self.YMean)/self.YStd;
 
+            % create the training data table
+            data = array2table( [normZ, normY], ...
+                                VariableNames = [self.EncodingStrategy.Names "Outcome"]);
+            self.PredictorNames = self.EncodingStrategy.Names;
+
             % select the model
             switch self.ModelType
                 case 'Linear'
-                    modelFcn = @(z, y) fitlm( z, y, 'linear' );
+                    modelFcn = @(data) fitlm( data, 'linear' );
                 case 'Ridge'
-                    modelFcn = @(z, y ) fitrlinear( z, y, Regularization = 'ridge' );
+                    modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), Regularization = 'ridge' );
                 case 'Lasso'
-                    modelFcn = @(z, y ) fitrlinear( z, y, Regularization = 'lasso' );
+                    modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), Regularization = 'lasso' );
+                case 'LassoSelect'
+                    modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), ...
+                                           Regularization = 'lasso', ...
+                                           Learner = 'leastsquares', ...
+                                           Lambda= getLassoLambda(data, self.NumPredictors));
                 case 'LinearOpt'
-                    modelFcn = @(z, y) fitrlinear( z, y, OptimizeHyperparameters='auto' );
+                    modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), OptimizeHyperparameters='auto' );
                 case 'SVM'
-                    modelFcn = @fitrsvm;
+                    modelFcn = @(data) fitrsvm( data(:,1:end-1), data(:,end) );
                 case 'XGBoost'
-                    modelFcn = @(z, y) fitrensemble( z, y, Method = 'LSBoost', ...
+                    modelFcn = @(data) fitrensemble( data(:,1:end-1), data(:,end), Method = 'LSBoost', ...
                         NumLearningCycles = 200, LearnRate = 0.1);
             end
 
             warning('off', 'all');
             % fit the model with optional additional arguments
             if isempty(self.ModelArgs)
-                self.Model = modelFcn( normZ, normY );
+                self.Model = modelFcn( data );
             else
                 modelArgCell = namedargs2cell( self.ModelArgs );
-                self.Model = modelFcn( normZ, normY, modelArgCell{:} );
+                self.Model = modelFcn( data, modelArgCell{:} );
             end
             if ~isempty(lastwarn)
                 self.IsRankDeficient = strcmp( lastwarn, ...
@@ -246,22 +261,24 @@ classdef JumpModel < handle
 
                         if self.StoreIndividualBetas
                             % record the standardized beta coefficients
+                            names = self.Model.CoefficientNames;
+                            names{1} = "Intercept";
                             for i = 1:self.Model.NumCoefficients
-                                eval.(['Beta' num2str(i)]) = self.Model.Coefficients.Estimate(i);
+                                eval.(['Beta' char(names{i})]) = self.Model.Coefficients.Estimate(i);
                             end
                         end
 
                         if self.StoreIndividualVIFs
                             % store the VIFs as well
                             for i = 1:self.Model.NumCoefficients-1
-                                eval.(['VIF' num2str(i)]) = modelVIFs(i);
+                                eval.(['VIF' char(names{i})]) = modelVIFs(i);
                             end
                         end
 
                         if self.StoreIndividualKSs
                             % store the KS too
                             for i = 1:self.Model.NumCoefficients-1
-                                eval.(['KS' num2str(i)]) = KS(i);
+                                eval.(['KS' char(names{i})]) = KS(i);
                             end
                         end
 
@@ -288,6 +305,50 @@ classdef JumpModel < handle
             
         end
 
+    end
+
+end
+
+
+function lambda = getLassoLambda( data, p )
+    % Determine lambda required to obtain specified number of predictors
+    arguments
+        data        table
+        p           double {mustBeInteger, mustBePositive}
+    end
+
+    % Fit lasso model with a wide range of lambda values
+    X = table2array( data(:,1:end-1) );
+    y = table2array( data(:,end) );
+    [B, fitInfo] = lasso(X, y, NumLambda = 100);
+
+    % find the index of the lambda value that gives the desired number of predictors
+    lambdaIdx = find(fitInfo.DF==p, 1);
+    
+    if ~isempty(lambdaIdx)
+        % extract the lambda found
+        lambda = fitInfo.Lambda(lambdaIdx);
+
+    else   
+        % find the nearest lambda value instead
+        [~, nearestIndex] = min(abs(fitInfo.DF - p));
+        nearestLambda = fitInfo.Lambda(nearestIndex);
+
+        % refine the search around the nearest lambda value
+        refineFactors = [0.5, 0.75, 1.25, 1.5];
+        refinedLambdas = nearestLambda*refineFactors;
+    
+        % rerun lasso with the refined lambda values
+        [B, fitInfo] = lasso(X, y, Lambda = refinedLambdas);
+        
+        % Find the index of the refined lambda value that gives the desired number of predictors
+        lambdaIdx = find(fitInfo.DF==p, 1);
+    
+        if isempty(lambdaIdx)
+            lambda = nearestLambda;
+        else
+            lambda = fitInfo.Lambda(lambdaIdx);
+        end
     end
 
 end

@@ -7,6 +7,7 @@ classdef JumpModel < handle
         NumObs              % number of observations
         NumChannels         % number of data channels
         NumPredictors       % number of predictors
+        PredictorSelection  % logical array of selected predictors
         Path                % file path for storing outputs
         EncodingStrategy    % encoding strategy
         PredictorNames      % name of predictors used in the model
@@ -124,10 +125,19 @@ classdef JumpModel < handle
             self.YStd = std( thisDataset.Y );
             normY = (thisDataset.Y - self.YMean)/self.YStd;
 
+            % select predictors (based on Lasso, if required)
+            if ~isempty(self.NumPredictors) && ~strcmp(self.ModelType, 'LassoSelect')
+                [~, self.PredictorSelection] = getLassoLambda(normZ, normY, self.NumPredictors);
+            else
+                self.PredictorSelection = true(1, length(self.EncodingStrategy.Names) );
+            end
+            % select those predictors
+            normZ = normZ(:, self.PredictorSelection);
+            self.PredictorNames = self.EncodingStrategy.Names(self.PredictorSelection);
+
             % create the training data table
             data = array2table( [normZ, normY], ...
-                                VariableNames = [self.EncodingStrategy.Names "Outcome"]);
-            self.PredictorNames = self.EncodingStrategy.Names;
+                                VariableNames = [self.PredictorNames "Outcome"]);
 
             % select the model
             switch self.ModelType
@@ -141,7 +151,7 @@ classdef JumpModel < handle
                     modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), ...
                                            Regularization = 'lasso', ...
                                            Learner = 'leastsquares', ...
-                                           Lambda= getLassoLambda(data, self.NumPredictors));
+                                           Lambda= getLassoLambda(normZ, normY, self.NumPredictors));
                 case 'LinearOpt'
                     modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), OptimizeHyperparameters='auto' );
                 case 'SVM'
@@ -205,6 +215,9 @@ classdef JumpModel < handle
 
             % get the ground truth
             stdY = (thisDataset.Y - self.YMean)./self.YStd;
+
+            % select the relevant features
+            stdZ = stdZ(:, self.PredictorSelection);
 
             % generate the predictions
             stdYHat = predict( self.Model, stdZ );
@@ -310,45 +323,48 @@ classdef JumpModel < handle
 end
 
 
-function lambda = getLassoLambda( data, p )
+function [lambda, selection] = getLassoLambda( X, y, p )
     % Determine lambda required to obtain specified number of predictors
     arguments
-        data        table
+        X           double
+        y           double
         p           double {mustBeInteger, mustBePositive}
     end
 
     % Fit lasso model with a wide range of lambda values
-    X = table2array( data(:,1:end-1) );
-    y = table2array( data(:,end) );
     [B, fitInfo] = lasso(X, y, NumLambda = 100);
 
     % find the index of the lambda value that gives the desired number of predictors
     lambdaIdx = find(fitInfo.DF==p, 1);
     
-    if ~isempty(lambdaIdx)
-        % extract the lambda found
-        lambda = fitInfo.Lambda(lambdaIdx);
-
-    else   
+    if isempty(lambdaIdx)
         % find the nearest lambda value instead
         [~, nearestIndex] = min(abs(fitInfo.DF - p));
         nearestLambda = fitInfo.Lambda(nearestIndex);
 
         % refine the search around the nearest lambda value
-        refineFactors = [0.5, 0.75, 1.25, 1.5];
+        refineFactors = logspace( -0.2, 0.2, 100 );
         refinedLambdas = nearestLambda*refineFactors;
     
         % rerun lasso with the refined lambda values
-        [B, fitInfo] = lasso(X, y, Lambda = refinedLambdas);
+        [BRefined, fitInfo] = lasso(X, y, Lambda = refinedLambdas);
         
         % Find the index of the refined lambda value that gives the desired number of predictors
-        lambdaIdx = find(fitInfo.DF==p, 1);
+        lambdaRefinedIdx = find(fitInfo.DF==p, 1);
     
-        if isempty(lambdaIdx)
+        if isempty(lambdaRefinedIdx)
             lambda = nearestLambda;
+            selection = (B(:, nearestIndex)~=0);
         else
-            lambda = fitInfo.Lambda(lambdaIdx);
+            lambda = fitInfo.Lambda(lambdaRefinedIdx);
+            selection = (BRefined(:, lambdaRefinedIdx)~=0);
         end
+
+    else
+        % extract the lambda found
+        lambda = fitInfo.Lambda(lambdaIdx);
+        selection = (B(:, lambdaIdx)~=0);
+
     end
 
 end

@@ -209,15 +209,13 @@ classdef JumpModel < handle
                 extras          logical = false
             end
         
-            % generate the encoding
+            % generate the encoding and select the relevant features
             [ Z, offsets] = self.EncodingStrategy.extractFeatures( thisDataset );
             stdZ = (Z - self.ZMean)./self.ZStd;
+            stdZ = stdZ(:, self.PredictorSelection);
 
             % get the ground truth
             stdY = (thisDataset.Y - self.YMean)./self.YStd;
-
-            % select the relevant features
-            stdZ = stdZ(:, self.PredictorSelection);
 
             % generate the predictions
             stdYHat = predict( self.Model, stdZ );

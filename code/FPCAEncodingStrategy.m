@@ -18,6 +18,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         Fitted              % flag whether the model has been fit
         FittedAlignmentIdx  % fitted alignment indices for training data
         RefAlignmentIdx     % ground truth alignment indices for reference
+        LMAlignmentIdx      % landmark alignment index
         StoreXAligned       % whether the store the aligned signals
         XAligned            % (optional) aligned signals in an array
     end
@@ -270,14 +271,18 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             for i = 1:numSignals
                 lmIdx(i) = self.findLandmark( squeeze(X(:,:,i)), refIdx(i) );
             end
-            lmMeanIdx = round(mean(lmIdx), 0);
+            
+            % set tje landmark alignment index to the mean (if not set)
+            if isempty( self.LMAlignmentIdx )
+                self.LMAlignmentIdx = round(mean(lmIdx), 0);
+            end
 
             % shift the signals to align with the mean position
             for i = 1:numSignals
 
                 if lmIdx(i) > 0
                     % Adjust the signal based on the offset. This is a simple shift.
-                    offsets(i) = lmMeanIdx - lmIdx(i);
+                    offsets(i) = self.LMAlignmentIdx - lmIdx(i);
                     if offsets(i) > 0
                         alignedX(:,:,i) = [X(1,:,i).*ones(offsets(i), numDim); 
                                            X(1:end-offsets(i),:,i)];

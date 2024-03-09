@@ -11,6 +11,7 @@ classdef JumpModel < handle
         Path                % file path for storing outputs
         EncodingStrategy    % encoding strategy
         PredictorNames      % name of predictors used in the model
+        Standardize         % whether to standardize the predictors
         ZMean               % training encoding means
         ZStd                % training encoding standard deviations
         YMean               % training outcome mean
@@ -41,6 +42,7 @@ classdef JumpModel < handle
                 args.EncodingType           string ...
                     {mustBeMember( args.EncodingType, ...
                             {'Discrete', 'Continuous'})} = 'Continuous'
+                args.Standardize            logical = true
                 args.DiscreteEncodingArgs   struct
                 args.ContinuousEncodingArgs struct
                 args.ModelType              string ...
@@ -62,6 +64,7 @@ classdef JumpModel < handle
             self.DatasetName = thisDataset.Name;
             self.NumObs = thisDataset.NumObs;
             self.NumChannels = thisDataset.NumChannels;
+            self.Standardize = args.Standardize;
             self.NumPredictors = args.NumPredictors;
             self.Path = args.Path;
             self.ModelType = args.ModelType;
@@ -115,10 +118,14 @@ classdef JumpModel < handle
             % generate the encoding
             Z = self.EncodingStrategy.extractFeatures( thisDataset );
 
-            % standardize the encoding
-            self.ZMean = mean( Z );
-            self.ZStd = std( Z );
-            normZ = (Z-self.ZMean)./self.ZStd;
+            if self.Standardize
+                % standardize the encoding
+                self.ZMean = mean( Z );
+                self.ZStd = std( Z );
+                normZ = (Z-self.ZMean)./self.ZStd;
+            else
+                normZ = Z;
+            end
             
             % standardize the outcome
             self.YMean = mean( thisDataset.Y );
@@ -209,16 +216,24 @@ classdef JumpModel < handle
                 extras          logical = false
             end
         
-            % generate the encoding and select the relevant features
+            % generate the encoding
             [ Z, offsets] = self.EncodingStrategy.extractFeatures( thisDataset );
-            stdZ = (Z - self.ZMean)./self.ZStd;
-            stdZ = stdZ(:, self.PredictorSelection);
+
+            % standardize if required
+            if self.Standardize
+                Z = (Z - self.ZMean)./self.ZStd;
+            else
+                Z = Z;
+            end
+
+            % select the relevant features
+            Z = Z(:, self.PredictorSelection);
 
             % get the ground truth
             stdY = (thisDataset.Y - self.YMean)./self.YStd;
 
             % generate the predictions
-            stdYHat = predict( self.Model, stdZ );
+            stdYHat = predict( self.Model, Z );
         
             % compute standardized loss
             eval.StdRMSE = sqrt(mean((stdYHat - stdY).^2));

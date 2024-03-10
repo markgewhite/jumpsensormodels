@@ -213,6 +213,12 @@ classdef JumpModel < handle
                 [self.Loss.Validation, self.Y.Validation, self.YHat.Validation] = ...
                     self.evaluateSet( self, thisValSet );   
             end
+
+            if self.CompressModel
+                % clear memory
+                self.Y = [];
+                self.YHat = [];
+            end
     
         end
 

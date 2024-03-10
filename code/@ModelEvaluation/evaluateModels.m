@@ -8,8 +8,6 @@ function evaluateModels( self, set )
 
     self.CVLoss.(set) = calcCVParameters( self.Models, 'Loss', set );
 
-    self.CVLoss.(set).Aggregate = calcCVLoss( self.Models, set );
-
     self.CVTiming.(set) = calcCVParameters( self.Models, 'Timing', set );
 
     if ~self.RetainAllParameters

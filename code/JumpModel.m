@@ -29,6 +29,7 @@ classdef JumpModel < handle
         StoreIndividualBetas% store linear models' beta coefficients
         StoreIndividualVIFs % store measures of betas' multicollinearity
         StoreIndividualKSs  % store measures of betas' normality
+        CompressModel       % whether to compress the models
     end
 
     methods
@@ -57,6 +58,7 @@ classdef JumpModel < handle
                 args.StoreIndividualBetas   logical = false
                 args.StoreIndividualVIFs    logical = false
                 args.StoreIndividualKSs     logical = false
+                args.CompressModel          logical = false
             end
 
             % set properties based on inputs
@@ -73,6 +75,7 @@ classdef JumpModel < handle
             self.StoreIndividualBetas = args.StoreIndividualBetas;
             self.StoreIndividualVIFs = args.StoreIndividualVIFs;
             self.StoreIndividualKSs = args.StoreIndividualKSs;
+            self.CompressModel = args.CompressModel;
 
             if isfield( args, 'ModelArgs' )
                 self.ModelArgs = args.ModelArgs;
@@ -162,7 +165,12 @@ classdef JumpModel < handle
                 case 'LinearOpt'
                     modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), OptimizeHyperparameters='auto' );
                 case 'SVM'
-                    modelFcn = @(data) fitrsvm( data(:,1:end-1), data(:,end) );
+                    if self.CompressModel
+                        % do not save training data
+                        modelFcn = @(data) fitrsvm( data(:,1:end-1), data(:,end), SaveSupportVectors = 'off' );
+                    else
+                        modelFcn = @(data) fitrsvm( data(:,1:end-1), data(:,end) );
+                    end
                 case 'XGBoost'
                     modelFcn = @(data) fitrensemble( data(:,1:end-1), data(:,end), Method = 'LSBoost', ...
                         NumLearningCycles = 200, LearnRate = 0.1);
@@ -181,6 +189,11 @@ classdef JumpModel < handle
                     'Regression design matrix is rank deficient to within machine precision.');
             end
             warning('on', 'all');
+
+            % save memory by compressing, if required
+            if self.CompressModel && ~strcmp(self.ModelType, 'SVM')
+                self.Model = compact( self.Model );
+            end
 
         end
 
@@ -266,24 +279,9 @@ classdef JumpModel < handle
                     case 'Linear'
 
                         eval.RankDeficient = self.IsRankDeficient;
-
-                        eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
-                        eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;
                         eval.RSquared = self.Model.Rsquared.Ordinary;
                         eval.Shrinkage = self.Model.Rsquared.Ordinary - ...
                                             self.Model.Rsquared.Adjusted;
-                        eval.StudentizedOutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
-                        eval.CookMeanOutlierProp = sum(self.Model.Diagnostics.CooksDistance>...
-                                                    4*mean(self.Model.Diagnostics.CooksDistance))/self.NumObs;
-                
-                        % calculate VIF to test for multicollinearity
-                        modelVIFs = vif( self.Model );
-                        eval.VIFHighProp = sum( modelVIFs>10 )/(self.Model.NumCoefficients-1);
-        
-                        % test for normality
-                        [p, KS] = kolmogorovSmirnov( self.Model );
-                        eval.KSNotNormalProp = sum( p<0.05 )/(self.Model.NumCoefficients-1);
-                        eval.KSMedian = median(KS);
 
                         if self.StoreIndividualBetas
                             % record the standardized beta coefficients
@@ -294,19 +292,37 @@ classdef JumpModel < handle
                             end
                         end
 
-                        if self.StoreIndividualVIFs
-                            % store the VIFs as well
-                            for i = 1:self.Model.NumCoefficients-1
-                                eval.(['VIF' char(names{i})]) = modelVIFs(i);
+                        if ~self.CompressModel
+                            eval.FStat = self.Model.ModelFitVsNullModel.Fstat;
+                            eval.FStatPValue = self.Model.ModelFitVsNullModel.Pvalue;
+                            eval.StudentizedOutlierProp = sum(abs(self.Model.Residuals.Studentized)>2)/self.NumObs;
+                            eval.CookMeanOutlierProp = sum(self.Model.Diagnostics.CooksDistance>...
+                                                    4*mean(self.Model.Diagnostics.CooksDistance))/self.NumObs;
+                
+                            % calculate VIF to test for multicollinearity
+                            modelVIFs = vif( self.Model );
+                            eval.VIFHighProp = sum( modelVIFs>10 )/(self.Model.NumCoefficients-1);
+            
+                            % test for normality
+                            [p, KS] = kolmogorovSmirnov( self.Model );
+                            eval.KSNotNormalProp = sum( p<0.05 )/(self.Model.NumCoefficients-1);
+                            eval.KSMedian = median(KS);
+
+                            if self.StoreIndividualVIFs
+                                % store the VIFs as well
+                                for i = 1:self.Model.NumCoefficients-1
+                                    eval.(['VIF' char(names{i})]) = modelVIFs(i);
+                                end
+                            end
+    
+                            if self.StoreIndividualKSs
+                                % store the KS too
+                                for i = 1:self.Model.NumCoefficients-1
+                                    eval.(['KS' char(names{i})]) = KS(i);
+                                end
                             end
                         end
 
-                        if self.StoreIndividualKSs
-                            % store the KS too
-                            for i = 1:self.Model.NumCoefficients-1
-                                eval.(['KS' char(names{i})]) = KS(i);
-                            end
-                        end
 
                     case {'Ridge', 'Lasso'}
 

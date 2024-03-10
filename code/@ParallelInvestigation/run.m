@@ -19,6 +19,7 @@ function self = run( self )
     thisEvaluation = cell( nEval, 1 );
     isComplete = false( nEval, 1 );
     errorMessages = strings( nEval, 1 );
+    saveEvaluations = self.SaveEvaluations;
 
     % run the evaluation loop
     parfor i = 1:nEval
@@ -51,8 +52,9 @@ function self = run( self )
 
         end
 
-        % save the evaluations
-        thisEvaluation{i}.save;
+        if saveEvaluations
+            thisEvaluation{i}.save;
+        end
         isComplete(i) = true;
 
     end

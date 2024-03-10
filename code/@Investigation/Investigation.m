@@ -18,6 +18,7 @@ classdef Investigation < handle
         TrainingResults     % structure summarising results from evaluations
         ValidationResults   % structure summarising results from evaluations
         CatchErrors         % flag indicating if try-catch should be used
+        SaveEvaluations     % whether to save evaluations as investigation progresses
     end
 
 
@@ -25,7 +26,7 @@ classdef Investigation < handle
 
         function self = Investigation( name, path, parameters, ...
                                        searchValues, setup, ...
-                                       catchErrors )
+                                       catchErrors, saveEvaluations )
             % Construct an investigation comprised of evaluations
             arguments
                 name            string
@@ -34,12 +35,14 @@ classdef Investigation < handle
                 searchValues
                 setup           struct
                 catchErrors     logical = false
+                saveEvaluations logical = false
             end
 
             % initialize properties
             self.Name = name;
             self.Path = path;
             self.CatchErrors = catchErrors;
+            self.SaveEvaluations = saveEvaluations;
 
             % create a folder for this investigation
             setup.model.args.path = fullfile( path, name );

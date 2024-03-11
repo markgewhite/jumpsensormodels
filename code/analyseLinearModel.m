@@ -40,7 +40,7 @@ fig1 = figure;
 fontname( fig1, 'Arial' );
 fig1.Position(3) = 1200;
 fig1.Position(4) = 550;
-layout = tiledlayout( 2, 3, TileSpacing='loose' );
+layout = tiledlayout(fig1, 2, 3, TileSpacing='loose' );
 colours = lines(2);
 for i = 1:4
 
@@ -86,7 +86,7 @@ fig2 = figure;
 fontname(fig2, 'Arial');
 fig2.Position(3) = 1200;
 fig2.Position(4) = 550;
-layout = tiledlayout(1, 2, 'TileSpacing', 'loose');
+layout = tiledlayout(fig2, 1, 2, 'TileSpacing', 'loose');
 
 for i = 1:2
 
@@ -116,8 +116,7 @@ for i = 1:2
     
     % plot the heat map of the mean correlation matrix
     ax = nexttile(layout);
-    imagesc(ax, meanCorrMatrix, ...
-            AlphaData = ~isnan(meanCorrMatrix));
+    imagesc(ax, meanCorrMatrix, AlphaData = ~isnan(meanCorrMatrix));
     colormap(ax, rdbuColorMap); 
     colorbar(ax);   
     clim(ax, [-1, 1]);
@@ -134,6 +133,7 @@ for i = 1:2
 end
 
 saveGraphicsObject( fig2, path, 'FeatureCorrelations' );
+
 
 
 function makeBoxPlot( ax, v, grps, c, heading )

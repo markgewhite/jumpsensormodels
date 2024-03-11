@@ -1,6 +1,6 @@
 % test the model with a grid search
 
-clear;
+clear all;
 
 path = fileparts( which('code/analyseSampleSize.m') );
 path = [path '/../results/'];
@@ -14,9 +14,10 @@ setup.model.args.CompressModel = true;
 
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;
-setup.eval.KFoldRepeats = 1;
+setup.eval.KFoldRepeats = 20;
 setup.eval.RandomSeed = 1234;
 setup.eval.InParallel = false;
+setup.eval.DiscardDatasets = true;
 
 parameters = [ "model.args.EncodingType", ...
                "data.args.Proportion", ...
@@ -27,7 +28,7 @@ values = {{'Discrete', 'Continuous'}, ...
           0.2:0.2:1.0, ...
           {@SmartphoneDataset, @DelsysDataset}, ....
           {'Linear', 'Lasso', 'SVM', 'XGBoost'}, ...
-          1:2};
+          1:20};
 
 myInvestigation = ParallelInvestigation( 'SampleSize', path, parameters, values, setup );
 

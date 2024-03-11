@@ -314,6 +314,10 @@ classdef JumpModel < handle
                             eval.KSNotNormalProp = sum( p<0.05 )/(self.Model.NumCoefficients-1);
                             eval.KSMedian = median(KS);
 
+                            [skew, kurt] = skewKurt( self.Model );
+                            eval.SkewnessMean = mean(skew);
+                            eval.KurtosisMean = mean(kurt);
+
                             if self.StoreIndividualVIFs
                                 % store the VIFs as well
                                 for i = 1:self.Model.NumCoefficients-1

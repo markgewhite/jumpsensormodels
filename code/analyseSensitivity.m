@@ -12,7 +12,7 @@ setup.model.args.ContinuousEncodingArgs.NumComponents = 18;
 
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;
-setup.eval.KFoldRepeats = 10;
+setup.eval.KFoldRepeats = 5;
 setup.eval.RandomSeed = 1234;
 setup.eval.InParallel = false;
 
@@ -28,25 +28,44 @@ myInvestigation = ParallelInvestigation( 'Sensitivity', path, parameters, values
 myInvestigation.run;
 
 %% produce scatter plots showing relationship between StdRMSE and chosen metrics
-metrics = ["VIFHighProp"];
+metrics = ["SkewnessMean", "KurtosisMean", "VIFHighProp"];
+numMetrics = length(metrics);
+
+numEncodings = myInvestigation.SearchDims(1);
+numPredictors = myInvestigation.SearchDims(2);
+numDatasets = myInvestigation.SearchDims(3);
 
 fig = figure;
 fontname(fig, 'Arial');
-fig.Position(3) = 800;
-fig.Position(4) = 600;
-layout = tiledlayout(fig, 2, 2, 'TileSpacing', 'loose');
+fig.Position(3) = numMetrics*350 + 100;
+fig.Position(4) = numDatasets*250 + 100;
+layout = tiledlayout(fig, numDatasets, numMetrics, TileSpacing='loose');
 
-for i = 1:4
+for i = 1:numDatasets
 
-    % extract all the encoded features for discrete and continuous
-    models = myInvestigation.Evaluations{i}.Models;
-    allMetrics = cellfun(@(mdl) mdl.Loss.Training.(metrics(1)), models);
-    allTrnErrors = cellfun(@(mdl) mdl.Loss.Training.StdRMSE, models);
-    allValErrors = cellfun(@(mdl) mdl.Loss.Validation.StdRMSE, models);
+    for j = 1:numMetrics
     
-    ax = nexttile(layout);
-    plot( ax, allMetrics, allTrnErrors, 'o' );
-    hold( ax, 'on' );
-    plot( ax, allMetrics, allValErrors, 'o' );
+        ax = nexttile(layout);
+        hold( ax, 'on' );
+    
+        for k = 1:numEncodings
+
+            allMetrics = [];
+            allValErrors = [];
+            for p = 1:numPredictors
+    
+                models = myInvestigation.Evaluations{k,p,i}.Models;
+                allMetrics = [allMetrics ...
+                    cellfun(@(mdl) mdl.Loss.Training.(metrics(j)), models)]; %#ok<*AGROW>
+                allValErrors = [allValErrors ...
+                    cellfun(@(mdl) mdl.Loss.Validation.StdRMSE, models)];
+        
+            end
+
+            plot( ax, allMetrics, allValErrors, 'o' );
+    
+        end
+
+    end
 
 end

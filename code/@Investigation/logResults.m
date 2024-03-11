@@ -17,19 +17,23 @@ function self = logResults( self, idxC, allocation )
         fld = fields{i};
         set = sets{i};
 
-        if isempty( self.(fld).Models )
+        if ~isfield( self.(fld), 'Models' )
             self.(fld).Models = cell( thisEvaluation.NumModels, 1 );
         end
 
         for j = 1:length(categories)
     
             cat = categories{j};
-            self.(fld).Mean = updateResults( ...
-                    self.(fld).Mean, idxC, allocation, ...
-                    thisEvaluation.(cat).(set).Mean );
-            self.(fld).SD = updateResults( ...
-                    self.(fld).SD, idxC, allocation, ...
-                    thisEvaluation.(cat).(set).SD );
+            statFld = fieldnames(thisEvaluation.(cat).(set));
+
+            for k = 1:length(statFld)
+                if ~isfield(self.(fld), statFld{k})
+                    self.(fld).(statFld{k}) = [];
+                end
+                self.(fld).(statFld{k}) = updateResults( ...
+                        self.(fld).(statFld{k}), idxC, allocation, ...
+                        thisEvaluation.(cat).(set).(statFld{k}) );
+            end
 
             for k = 1:thisEvaluation.NumModels
                 thisModel = thisEvaluation.Models{k};

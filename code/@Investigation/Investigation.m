@@ -53,12 +53,6 @@ classdef Investigation < handle
             self.BaselineSetup = setup;
             self.Parameters = parameters;
             self.GridSearch = searchValues;
-            self.TrainingResults.Mean = [];
-            self.TrainingResults.SD = [];
-            self.TrainingResults.Models = [];
-            self.ValidationResults.Mean = [];
-            self.ValidationResults.SD = [];
-            self.ValidationResults.Models = [];
 
             % setup the grid search
             self.NumParameters = length( parameters );

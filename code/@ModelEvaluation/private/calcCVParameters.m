@@ -25,6 +25,11 @@ function aggrP = calcCVParameters( models, group, set )
         end
         aggrP.Mean.(fields{i}) = squeeze(mean(P, 1, 'omitnan'));
         aggrP.SD.(fields{i}) = squeeze(std(P,1, 'omitnan'));
+        aggrP.Median.(fields{i}) = squeeze(median(P, 1, 'omitnan'));
+        aggrP.Prctile5.(fields{i}) = squeeze(prctile(P, 5));
+        aggrP.Prctile25.(fields{i}) = squeeze(prctile(P, 25));
+        aggrP.Prctile75.(fields{i}) = squeeze(prctile(P, 75));
+        aggrP.Prctile95.(fields{i}) = squeeze(prctile(P, 95));
         aggrP.All.(fields{i}) = P;
 
     end

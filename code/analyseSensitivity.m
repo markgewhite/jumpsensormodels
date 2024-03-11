@@ -12,7 +12,7 @@ setup.model.args.ContinuousEncodingArgs.NumComponents = 18;
 
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;
-setup.eval.KFoldRepeats = 5;
+setup.eval.KFoldRepeats = 1;
 setup.eval.RandomSeed = 1234;
 setup.eval.InParallel = false;
 
@@ -28,6 +28,7 @@ myInvestigation = ParallelInvestigation( 'Sensitivity', path, parameters, values
 myInvestigation.run;
 
 %% produce scatter plots showing relationship between StdRMSE and chosen metrics
+setNames = ["Smartphone Dataset", "Delsys"];
 metrics = ["SkewnessMean", "KurtosisMean", "VIFHighProp"];
 numMetrics = length(metrics);
 
@@ -40,6 +41,7 @@ fontname(fig, 'Arial');
 fig.Position(3) = numMetrics*350 + 100;
 fig.Position(4) = numDatasets*250 + 100;
 layout = tiledlayout(fig, numDatasets, numMetrics, TileSpacing='loose');
+colours = lines(numEncodings);
 
 for i = 1:numDatasets
 
@@ -50,21 +52,35 @@ for i = 1:numDatasets
     
         for k = 1:numEncodings
 
-            allMetrics = [];
-            allValErrors = [];
-            for p = 1:numPredictors
-    
-                models = myInvestigation.Evaluations{k,p,i}.Models;
-                allMetrics = [allMetrics ...
-                    cellfun(@(mdl) mdl.Loss.Training.(metrics(j)), models)]; %#ok<*AGROW>
-                allValErrors = [allValErrors ...
-                    cellfun(@(mdl) mdl.Loss.Validation.StdRMSE, models)];
-        
-            end
+            xMedian = myInvestigation.TrainingResults.Median.(metrics(j));
+            xPrc25 = myInvestigation.TrainingResults.Prctile25.(metrics(j));
+            xPrc75 = myInvestigation.TrainingResults.Prctile75.(metrics(j));
 
-            plot( ax, allMetrics, allValErrors, 'o' );
-    
+            yMedian = myInvestigation.ValidationResults.Median.StdRMSE;
+            yPrc25 = myInvestigation.ValidationResults.Prctile25.StdRMSE;
+            yPrc75 = myInvestigation.ValidationResults.Prctile75.StdRMSE;
+
+            xMedian = squeeze(xMedian(i,:,k));
+            xPrc25 = squeeze(xPrc25(i,:,k));
+            xPrc75 = squeeze(xPrc75(i,:,k));
+            yMedian = squeeze(yMedian(i,:,k));
+            yPrc25 = squeeze(yPrc25(i,:,k));
+            yPrc75 = squeeze(yPrc75(i,:,k));
+
+            errorbar( ax, xMedian, yMedian, ...
+                      yMedian-yPrc25, yPrc75-yMedian, ...
+                      xMedian-xPrc25, xPrc75-xMedian, ...
+                      LineStyle = 'none', ...
+                      Color = colours(k,:), LineWidth = 1, ...
+                      CapSize = 5, ...
+                      HandleVisibility = 'off');
+               
         end
+
+        legend( ax, {'Discrete', 'Continuous'} );
+        xlabel( ax, metrics(j) );
+        ylabel( ax, 'Standardised Validation RMSE' );
+        title( ax, [char(setNames(i)) ' - ' char(metrics(j))] );
 
     end
 

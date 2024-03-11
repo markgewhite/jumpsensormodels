@@ -22,6 +22,7 @@ classdef ModelEvaluation < handle
         RandomSeedResets    % whether to reset the seed for each model
         InParallel          % whether to run the evaluation in parallel
         Verbose             % whether to report updates in the console
+        DiscardDatasets     % whether to delete datasets when complete
     end
 
 
@@ -42,12 +43,13 @@ classdef ModelEvaluation < handle
                 args.KFoldRepeats       double ...
                         {mustBeInteger, mustBePositive} = 1
                 args.HasIdenticalPartitions logical = false
-                args.RetainAllParameters logical = false;
+                args.RetainAllParameters logical = false
                 args.RandomSeed         double ...
                         {mustBeInteger, mustBePositive} = []
-                args.RandomSeedResets   logical = false;
-                args.InParallel         logical = false;
-                args.Verbose            logical = true;
+                args.RandomSeedResets   logical = false
+                args.InParallel         logical = false
+                args.Verbose            logical = true
+                args.DiscardDatasets    logical = false
             end
 
             % store the name for this evaluation and its bespoke setup
@@ -65,6 +67,7 @@ classdef ModelEvaluation < handle
             self.RandomSeedResets = args.RandomSeedResets;
             self.InParallel = args.InParallel;
             self.Verbose = args.Verbose;
+            self.DiscardDatasets = args.DiscardDatasets;
 
             if ~isempty( self.RandomSeed )
                 % set random seed for reproducibility
@@ -103,6 +106,11 @@ classdef ModelEvaluation < handle
                 reportResult( self.CVLoss.Training.Mean );
                 disp('Validation evaluation:');
                 reportResult( self.CVLoss.Validation.Mean );
+            end
+
+            if self.DiscardDatasets
+                delete( self.TrainingDataset );
+                delete( self.ValidationDataset );
             end
 
         end

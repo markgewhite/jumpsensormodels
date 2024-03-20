@@ -41,6 +41,7 @@ function fig = plotModelPerformance( thisInvestigation, ...
     datasetNames = string(cellfun(@func2str, thisInvestigation.GridSearch{3}, 'UniformOutput', false));
     modelTypeNames = thisInvestigation.GridSearch{4};
     
+    jitter = 0.005*(max(x0)-min(x0));
     for i = 1:numDatasets
         for j = 1:numEncodings
 
@@ -48,7 +49,7 @@ function fig = plotModelPerformance( thisInvestigation, ...
             hold( ax, 'on' );
 
             for k = 1:numModelTypes
-                x = x0+rand(1,numPredictors)*0.2;
+                x = x0+randn(1,numPredictors)*jitter;
                 plot( ax, x, y(j, :, i, k), ...
                     Marker = 'o', MarkerSize = 5, ...
                     MarkerFaceColor = colours(k,:), ...
@@ -63,9 +64,11 @@ function fig = plotModelPerformance( thisInvestigation, ...
             end
 
             xlim( ax, [0 max(x0)] );
-            if isfield(args, 'YLimits')
+            if args.LogScale
+                ax.YAxis.Scale = 'log';
+            elseif isfield(args, 'YLimits')
                 ylim(ax, args.YLimits);
-                if isfield(args, 'YTickIncrement')
+                if isfield(args, 'YTickInterval')
                     yTicks = args.YLimits(1):args.YTickInterval:args.YLimits(2);
                     yTickLabels = arrayfun(@(x) num2str(x, '%.2f'), yTicks, 'UniformOutput', false);
                     ax.YTick = yTicks;

@@ -14,6 +14,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         AlignmentMethod     % method for aligning signals prior to PCA
         AlignmentSignal     % reference signal for alignment
         AlignmentTolerance  % alignment variance tolerance
+        AlignSquareDiff     % align using the square diff instead of unchanged signal
         ShowConvergence     % show plots and variance of alignment convergence
         Fitted              % flag whether the model has been fit
         FittedAlignmentIdx  % fitted alignment indices for training data
@@ -44,8 +45,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                          'LMTakeoff', 'LMLanding', ...
                          'LMTakeoffDiscrete', ...
                          'LMTakeoffActual' })} = 'XCRandom'
+                args.AlignSquareDiff    logical = false
                 args.AlignmentTolerance double ...
-                    {mustBePositive} = 5E-2
+                    {mustBePositive} = 1E-4
                 args.ShowConvergence    logical = false
                 args.StoreXAligned      logical = false
             end
@@ -68,6 +70,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
             self.AlignmentMethod = args.AlignmentMethod;
             self.AlignmentTolerance = args.AlignmentTolerance;
+            self.AlignSquareDiff = args.AlignSquareDiff;
             self.ShowConvergence = args.ShowConvergence;
             self.Fitted = false;
             self.StoreXAligned = args.StoreXAligned;
@@ -167,13 +170,16 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
                 case 'XCRandom'
                     [XAligned, self.AlignmentSignal, self.FittedAlignmentIdx] = ...
-                                xcorrAlignment( X, Reference = 'Random' );
+                                xcorrAlignment( X, ...
+                                                Reference = 'Random', ...
+                                                UseSqDiff = self.AlignSquareDiff );
 
                 case 'XCMeanConv'
                     [XAligned, self.AlignmentSignal, self.FittedAlignmentIdx ] = ...
                                 iteratedAlignment( X, ...
                                                    self.AlignmentTolerance, ...
-                                                   self.ShowConvergence );
+                                                   self.ShowConvergence, ...
+                                                   self.AlignSquareDiff );
 
                 case {'LMTakeoff', 'LMLanding', ...
                         'LMTakeoffDiscrete', 'LMTakeoffActual'}
@@ -208,7 +214,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 case {'XCRandom', 'XCMeanConv'}
                     [ XAligned, ~, offsets ] = xcorrAlignment( X, ...
                                                Reference = 'Specified', ...
-                                               RefSignal = self.AlignmentSignal );
+                                               RefSignal = self.AlignmentSignal, ...
+                                               UseSqDiff = self.AlignSquareDiff );
 
                 case {'LMTakeoff', 'LMLanding', ...
                         'LMTakeoffDiscrete', 'LMTakeoffActual'}
@@ -339,28 +346,30 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 end
 
 
-function [XAligned, alignmentSignal, alignmentIdx ] = iteratedAlignment( X, tol, verbose )
+function [XAligned, alignmentSignal, alignmentIdx ] = iteratedAlignment( X, tol, verbose, useSqDiff )
     % Iterate curve alignment using the mean curve
     arguments
         X           double
         tol         double
         verbose     logical
-    end
-
-    if verbose
-        figure(1);
-        hold off;
+        useSqDiff   logical
     end
 
     prevXMeanVar = mean(var(permute(X, [1 3 2]), [], 3), 'all');
+    if verbose
+        disp(['X        Var = ' num2str( prevXMeanVar, '%6.4f' )]);
+    end
+
     converged = false;
     i = 0;
     XAligned = X;
     alignmentIdx = zeros( size(X,2), 1 );
 
-    while ~converged && i<10
+    while ~converged && i<8
         [XAligned, alignmentSignal, offset] = ...
-                            xcorrAlignment( XAligned, Reference = 'Mean' );
+                            xcorrAlignment( XAligned, ...
+                                            Reference = 'Mean', ...
+                                            UseSqDiff = useSqDiff );
         alignmentIdx = alignmentIdx + offset;
 
         XVar = var(permute(XAligned, [1 3 2]), [], 3);
@@ -370,9 +379,7 @@ function [XAligned, alignmentSignal, alignmentIdx ] = iteratedAlignment( X, tol,
         i = i+1;
 
         if verbose
-            plot( XVar );
-            hold on;
-            disp(['XAligned Var = ' num2str( XMeanVar, '%10.8f' )]);
+            disp(['XAligned Var = ' num2str( XMeanVar, '%6.4f' )]);
         end
 
     end
@@ -387,11 +394,12 @@ end
 function [ alignedX, refZ, offsets, correlations ] = xcorrAlignment( X, args )
     % Align X series using cross correlation with a reference signal
     arguments
-        X               double
-        args.Reference  string ...
+        X                   double
+        args.Reference      string ...
                 {mustBeMember( args.Reference, ...
                     {'Random', 'Mean', 'Specified'})} = 'Random'
-        args.RefSignal  double
+        args.RefSignal      double
+        args.UseSqDiff      logical
     end
 
     [sigLength, numSignals, numDim] = size( X );
@@ -400,7 +408,11 @@ function [ alignedX, refZ, offsets, correlations ] = xcorrAlignment( X, args )
     X = permute( X, [1 3 2] );
 
     % align the squared diff of the resultant
-    Z = squeeze(diff( sqrt(sum(X.^2, 2)) ).^2);
+    if args.UseSqDiff
+        Z = squeeze(diff( sqrt(sum(X.^2, 2)) ).^2);
+    else
+        Z = squeeze(X);
+    end
 
     % select the reference signal
     switch args.Reference

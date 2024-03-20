@@ -130,6 +130,13 @@ for i = 1:2
     yticklabels(ax, combinedLabels);
 
     title(ax, titles(i));
+
+    % report correlations with feature "e"
+    disp(['Feature e correlation: FPC1 = ' num2str(meanCorrMatrix(27,5), '%.3f') ...
+          '; FPC2 = ' num2str(meanCorrMatrix(28,5), '%.3f') ...
+          '; FPC3+ = ' num2str(mean(meanCorrMatrix(29:end,5)), '%.3f') ...
+               ' +/- ' num2str(std(meanCorrMatrix(29:end,5)), '%.3f')]);
+
 end
 
 saveGraphicsObject( fig2, path, 'FeatureCorrelations' );

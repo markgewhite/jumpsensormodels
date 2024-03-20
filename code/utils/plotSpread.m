@@ -31,4 +31,7 @@ function plotSpread( ax, X, t, c, lb, ub )
         fill( ax, xSpread, ySpread, c, FaceAlpha = 0.10, EdgeColor = 'none' );
     end
 
+    % plot the mean curve
+    plot( ax, t, meanX, LineWidth=2, Color=c );
+
 end

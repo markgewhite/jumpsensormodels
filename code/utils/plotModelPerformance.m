@@ -12,13 +12,18 @@ function fig = plotModelPerformance( thisInvestigation, ...
         args.XLogScale      logical = false
         args.YLogScale      logical = false
         args.Percentiles    logical = false
+        args.FitType        char ...
+            {mustBeMember(args.FitType, ...
+                {'none', 'poly1', 'poly2', 'power1', 'exp1'})} = 'none'
     end
 
+    % extract the grid search values
     numEncodings = thisInvestigation.SearchDims(1);
     numPredictors = thisInvestigation.SearchDims(2);
     numDatasets = thisInvestigation.SearchDims(3);
     numModelTypes = thisInvestigation.SearchDims(4);
 
+    % create the figure and layout
     fig = figure;
     fontname( fig, 'Arial' );
     fig.Position(3) = 350*numEncodings + 100;
@@ -28,6 +33,7 @@ function fig = plotModelPerformance( thisInvestigation, ...
     
     x0 = thisInvestigation.GridSearch{2};
 
+    % use percentiles or average
     if args.Percentiles
         y = thisInvestigation.([args.Set 'Results']).Median.(metric);
         err{1} = y - thisInvestigation.([args.Set 'Results']).Prctile25.(metric);
@@ -38,6 +44,7 @@ function fig = plotModelPerformance( thisInvestigation, ...
         err{2} = err{1};
     end
 
+    % extract the names for labels
     encodingNames = thisInvestigation.GridSearch{1};
     datasetNames = string(cellfun(@func2str, thisInvestigation.GridSearch{3}, 'UniformOutput', false));
     modelTypeNames = thisInvestigation.GridSearch{4};
@@ -49,27 +56,65 @@ function fig = plotModelPerformance( thisInvestigation, ...
             ax = nexttile(layout);
             hold( ax, 'on' );
 
+            lineObj = gobjects( numModelTypes, 1 );
             for k = 1:numModelTypes
+
+                % introduce jitter to the x points so they don't overlap
                 x = x0+randn(1,numPredictors)*jitter;
-                plot( ax, x, y(j, :, i, k), ...
-                    Marker = 'o', MarkerSize = 5, ...
-                    MarkerFaceColor = colours(k,:), ...
-                    Color = colours(k,:), LineWidth = 2);
+
+                % plot the actual points
+                lineObj(k) = plot( ax, x, y(j, :, i, k), ...
+                                  Marker = 'o', MarkerSize = 5, ...
+                                  MarkerFaceColor = colours(k,:), ...
+                                  Color = colours(k,:), ...
+                                  LineStyle = 'none');
                 
+                % with error bars 
                 errorbar(ax, x, y(j, :, i, k), ...
                     err{1}(j, :, i, k), err{2}(j, :, i, k), ...
                     LineStyle = 'none', ...
                     Color = colours(k,:), LineWidth = 1, ...
                     CapSize = 5, ...
                     HandleVisibility = 'off');
+
+                % include a best fit line of chosen type
+                if ~strcmp(args.FitType, 'none')
+
+                    % include only valid points
+                    idx = ~isnan(y(j, :, i, k));
+                    xValid = x(idx);
+                    yValid = y(j, idx, i, k);
+
+                    % create the fitting object
+                    [curveFit, ~] = fit(xValid', yValid', ...
+                                        fittype(args.FitType));
+                    
+                    % create a more granular scale
+                    xFit = linspace(min(x), max(x), 50);
+
+                    % evaluate the fitted curve
+                    [yFitCI, yFit] = predint(curveFit, xFit, 0.95, 'functional');
+
+                    % fill in a shared region showing uncertainty
+                    fill([xFit, fliplr(xFit)], [yFitCI(:,1); flipud(yFitCI(:,2))], ...
+                         colours(k,:), ...
+                         FaceAlpha=0.2, EdgeColor='none');
+
+                    % plot the best fit line
+                    plot(ax, xFit, yFit, '--', ...
+                         Color = colours(k,:), LineWidth = 2);
+
+                end
+
             end
 
+            % set the desired scales
             if args.XLogScale
                 ax.XAxis.Scale = 'log';
             else
                 xlim( ax, [0 max(x0)] );
             end
-            
+
             if args.YLogScale
                 ax.YAxis.Scale = 'log';
             elseif isfield(args, 'YLimits')
@@ -81,13 +126,15 @@ function fig = plotModelPerformance( thisInvestigation, ...
                     ax.YTickLabel = yTickLabels;
                 end
             end
+
+            % finalise the plot
             xlabel( ax, varName );
             ylabel( ax, metricName );
             heading = strcat( datasetNames(i), " - ", encodingNames(j) );
             title( ax, heading );
 
             if i==1 && j==1
-                legend( ax, modelTypeNames, Location = 'best' );
+                legend( ax, lineObj, modelTypeNames, Location = 'best' );
             end
 
         end

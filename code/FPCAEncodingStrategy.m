@@ -21,7 +21,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         RefAlignmentIdx     % ground truth alignment indices for reference
         LMAlignmentIdx      % landmark alignment index
         StoreXAligned       % whether the store the aligned signals
-        XAligned            % (optional) aligned signals in an array
+        XAlignedPts         % (optional) aligned signals in an array
     end
 
     methods
@@ -32,11 +32,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 args.NumComponents      double ...
                     {mustBeInteger, mustBePositive} = 16
                 args.BasisOrder         double ...
-                    {mustBeInteger, ...
-                     mustBeGreaterThanOrEqual(args.BasisOrder, 4)} = 4
+                    {mustBeInteger, mustBePositive} = 4
                 args.PenaltyOrder       double ...
-                    {mustBeInteger, ...
-                     mustBeLessThanOrEqual(args.PenaltyOrder, 2)} = 2
+                    {mustBeInteger, mustBePositive} = 1
                 args.Lambda             double ...
                     {mustBePositive} = 1E-8
                 args.AlignmentMethod    char ...
@@ -97,11 +95,11 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             end
 
             if self.StoreXAligned
-                self.XAligned = XAligned;
+                self.XAlignedPts = XAligned;
             end
 
             % create the functional representation
-            [XFd, self.TSpan] = self.funcSmoothData( XAligned );
+            XFd = self.funcSmoothData( XAligned );
 
             % perform principal components analysis (fit the model)
             pcaStruct = pca_fd( XFd, self.NumComponents );
@@ -165,6 +163,9 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                          Location = 'Right' );
             self.Length = size( X, 1 );
 
+            % set an arbitrary time span
+            self.TSpan = linspace( 0, 1, self.Length );
+
             % align arrays
             switch self.AlignmentMethod
 
@@ -227,29 +228,54 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         end
 
 
-        function [ XFd, tSpan ] = funcSmoothData( self, X )
+        function XFd = funcSmoothData( self, X )
             % Convert raw time series data to smooth functions
             arguments
                 self            FPCAEncodingStrategy
                 X               double
             end
-        
-            % set an arbitrary time span
-            numPts = size(X,1);
-            tSpan = linspace( 0, 1, numPts );
-        
+               
             % set the functional basis
-            numBasis = fix( numPts/10 );
-            basisFd = create_bspline_basis( [tSpan(1) tSpan(end)], ...
+            numBasis = fix( self.Length/10 );
+            basisFd = create_bspline_basis( [self.TSpan(1) self.TSpan(end)], ...
                                             numBasis, ...
                                             self.BasisOrder );
             
+            % set the roughness penality
+            self.Lambda = self.findLambda( X, basisFd );
+
             % and the parameters
             FdParams = fdPar( basisFd, self.PenaltyOrder, self.Lambda );
         
             % create the smooth functions from the original data
-            XFd = smooth_basis( tSpan, X, FdParams );
+            XFd = smooth_basis( self.TSpan, X, FdParams );
         
+        end
+
+        
+        function lambda = findLambda( self, X, basisFd )
+            % Determine the roughness penalty with automated 
+            % general cross validation
+            arguments
+                self            FPCAEncodingStrategy
+                X               double
+                basisFd
+            end
+
+            % define Generalised Cross-Validation function
+            gcvFcn = @(L) gcv( L, X, self.TSpan, basisFd, self.PenaltyOrder );
+        
+            % find the loglambda where GCV is minimized
+            warning( 'off', 'Wid2:reduce' );
+        
+            % find L that minimizws gcvFcn to a precision of 0.1
+            opt = optimset( 'TolX', 1, ...
+                            'MaxIter', 9, 'Display', 'off' );
+            logLambda = fminbnd( gcvFcn, -10, 0, opt );
+        
+            warning( 'on', 'Wid2:reduce' );
+            lambda = 10^round( logLambda, 1 );
+
         end
 
 
@@ -342,6 +368,27 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         end
 
     end
+
+end
+
+
+function gcv = gcv( logLambda, X, tSpan, basis, penaltyOrder  )
+    % Objective function returning GCV error for given smoothing
+    arguments
+        logLambda       double
+        X               double
+        tSpan           double
+        basis
+        penaltyOrder    double
+    end
+
+    % set smoothing parameters
+    XFdParam = fdPar( basis, penaltyOrder, 10^logLambda );
+    
+    % perform smoothing
+    [~, ~, gcv] = smooth_basis( tSpan, X, XFdParam );
+
+    gcv = mean(gcv, 'all');
 
 end
 
@@ -524,6 +571,7 @@ function tTO = findLandmarkDiscreteMethod( acc, fs )
     delete( thisEncoding );
 
 end
+
 
 
 

@@ -144,6 +144,58 @@ classdef FPCAEncodingStrategy < EncodingStrategy
 
         end
 
+
+        function [rmse, pcc, ncc, tde, mi] = calcMetrics( self )
+            % Calculate the number of signals and signal length
+            arguments
+                self                FPCAEncodingStrategy
+            end
+
+            numObs = size(self.XAlignedPts, 2);
+            
+            % Initialize variables to store the metrics
+            rmse = 0;
+            pcc = 0;
+            ncc = 0;
+            tde = 0;
+            mi = 0;
+
+            % Iterate over all pairs of signals
+            for i = 1:numObs-1
+                for j = i+1:numObs
+
+                    % Calculate RMSE
+                    rmse = rmse + sqrt(mean((self.XAlignedPts(:,i) - self.XAlignedPts(:,j)).^2));
+                    
+                    % Calculate PCC
+                    pcc = pcc + corr(self.XAlignedPts(:,i), self.XAlignedPts(:,j));
+                    
+                    % Calculate cross-correlation
+                    [cc, lags] = xcorr(self.XAlignedPts(:,i), self.XAlignedPts(:,j));
+                    
+                    % Calculate NCC
+                    ncc = ncc + max(cc) / sqrt(sum(self.XAlignedPts(:,i).^2) * sum(self.XAlignedPts(:,j).^2));
+                    
+                    % Calculate TDE
+                    [~, maxIndex] = max(cc);
+                    tde = tde + lags(maxIndex);
+                    
+                    % Calculate MI
+                    mi = mi + calculateMI(self.XAlignedPts(:,i), self.XAlignedPts(:,j));
+
+                end
+            end
+            
+            % Normalize the metrics by the number of signal pairs
+            numPairs = (numObs * (numObs - 1)) / 2;
+            rmse = rmse / numPairs;
+            pcc = pcc / numPairs;
+            ncc = ncc / numPairs;
+            tde = tde / numPairs;
+            mi = mi / numPairs;
+
+        end
+
     end
 
 
@@ -570,6 +622,38 @@ function tTO = findLandmarkDiscreteMethod( acc, fs )
     % remove the object from memory
     delete( thisEncoding );
 
+end
+
+
+function mi = calculateMI(x1, x2)
+    % Calculate mutual information between signals
+    arguments
+        x1          double
+        x2          double
+    end
+
+    % Calculate the histograms of the signals
+    edges = linspace(min(min(x1), min(x2)), max(max(x1), max(x2)), 10);
+    hist1 = histcounts(x1, edges);
+    hist2 = histcounts(x2, edges);
+    
+    % Calculate the joint histogram
+    jointHist = hist3([x1 x2], {edges, edges});
+    
+    % Calculate the probability distributions
+    p1 = hist1 / sum(hist1);
+    p2 = hist2 / sum(hist2);
+    pJoint = jointHist / sum(jointHist(:));
+    
+    % Calculate the marginal entropies
+    H1 = -sum(p1 .* log2(p1 + eps));
+    H2 = -sum(p2 .* log2(p2 + eps));
+    
+    % Calculate the joint entropy
+    HJoint = -sum(pJoint(:) .* log2(pJoint(:) + eps));
+    
+    % Calculate the mutual information
+    mi = H1 + H2 - HJoint;
 end
 
 

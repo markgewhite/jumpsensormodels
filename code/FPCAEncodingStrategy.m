@@ -42,7 +42,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                         {'XCRandom', 'XCMeanConv', ...
                          'LMTakeoff', 'LMLanding', ...
                          'LMTakeoffDiscrete', ...
-                         'LMTakeoffActual' })} = 'XCRandom'
+                         'LMTakeoffActual', ...
+                         'LMTakeoffCorrection' })} = 'LMTakeoff'
                 args.AlignSquareDiff    logical = false
                 args.AlignmentTolerance double ...
                     {mustBePositive} = 1E-4
@@ -183,7 +184,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                                                    self.AlignSquareDiff );
 
                 case {'LMTakeoff', 'LMLanding', ...
-                        'LMTakeoffDiscrete', 'LMTakeoffActual'}
+                        'LMTakeoffDiscrete', 'LMTakeoffActual', 'LMTakeoffCorrection'}
                     [XAligned, self.FittedAlignmentIdx] = ...
                                 self.landmarkAlignment( X, ...
                                                         thisDataset.ReferenceIdx );
@@ -219,7 +220,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                                                UseSqDiff = self.AlignSquareDiff );
 
                 case {'LMTakeoff', 'LMLanding', ...
-                        'LMTakeoffDiscrete', 'LMTakeoffActual'}
+                        'LMTakeoffDiscrete', 'LMTakeoffActual', 'LMTakeoffCorrection'}
                     [ XAligned, offsets ] = self.landmarkAlignment( X, ...
                                                thisDataset.ReferenceIdx );
 
@@ -305,7 +306,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 lmIdx(i) = self.findLandmark( squeeze(X(:,:,i)), refIdx(i) );
             end
             
-            % set tje landmark alignment index to the mean (if not set)
+            % set the landmark alignment index to the mean (if not set)
             if isempty( self.LMAlignmentIdx )
                 self.LMAlignmentIdx = round(mean(lmIdx), 0);
             end
@@ -346,7 +347,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             end
         
             switch self.AlignmentMethod
-                case {'LMTakeoff', 'LMLanding'}
+                case {'LMTakeoff', 'LMLanding', 'LMTakeoffCorrection'}
                     offset = findLandmarkStandard( X, ...
                                                    self.AlignmentMethod, ...
                                                    self.SamplingFreq );
@@ -429,10 +430,6 @@ function [XAligned, alignmentSignal, alignmentIdx ] = iteratedAlignment( X, tol,
             disp(['XAligned Var = ' num2str( XMeanVar, '%6.4f' )]);
         end
 
-    end
-
-    if verbose
-        hold off;
     end
 
 end
@@ -540,6 +537,9 @@ function offset = findLandmarkStandard( acc, landmark, fs )
             offset = min( pkIdx( sortIdx(1:2) ) );
         case 'LMLanding'
             offset = max( pkIdx( sortIdx(1:2) ) );
+        case 'LMTakeoffCorrection'
+            offset = min( pkIdx( sortIdx(1:2) ) );
+            offset = offset + floor(44*fs/250);
     end
 
 end

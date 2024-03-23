@@ -14,9 +14,9 @@ filesnames = {'AlignmentSmart', 'AlignmentDelsys'};
 
 % alignment methods
 methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...
-                        'LMTakeoffDiscrete', 'LMTakeoffActual'};
-xCentre = [ 2.0, 5.5, 4.0, 4.0, 4.0, 4.0;
-            3.5, 3.5, 4.0, 4.0, 4.0, 4.0 ];
+            'LMTakeoffDiscrete', 'LMTakeoffActual', 'LMTakeoffCorrection'};
+xCentre = [ 2.0, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0;
+            3.5, 3.5, 4.0, 4.0, 4.0, 4.0, 4.0 ];
 xWidth = 1.5;
 
 % iterate over methods
@@ -46,9 +46,18 @@ for k = 1:2
                                          StoreXAligned=true, ...
                                          ShowConvergence=true, ...
                                          AlignSquareDiff=false );
-    
-        % perform the encodings and extract and plot the aligned signals
+
+        % perform the encodings
         encoding.fit( data{k} );
+
+        % compute alignment error
+        if ~isempty(encoding.RefAlignmentIdx) && ~isempty(encoding.FittedAlignmentIdx) &&  ~isempty(encoding.LMAlignmentIdx)
+            fittedPositionIdx = encoding.LMAlignmentIdx-encoding.FittedAlignmentIdx;
+            alignmentRMSE = sqrt(mean((fittedPositionIdx-encoding.RefAlignmentIdx).^2));
+            disp(['Alignment RMSE = ' num2str(alignmentRMSE)]);
+        end
+
+        % plot the aligned signals
         t = linspace( 0, length(encoding.XAlignedPts), length(encoding.XAlignedPts) )/data{k}.SampleFreq;
 
         ax(k,i) = nexttile( layout );

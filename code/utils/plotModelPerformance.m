@@ -9,7 +9,8 @@ function fig = plotModelPerformance( thisInvestigation, ...
         args.Set            char {mustBeMember(args.Set, {'Training', 'Validation'})}
         args.YLimits        double
         args.YTickInterval  double
-        args.LogScale       logical = false
+        args.XLogScale      logical = false
+        args.YLogScale      logical = false
         args.Percentiles    logical = false
     end
 
@@ -63,8 +64,13 @@ function fig = plotModelPerformance( thisInvestigation, ...
                     HandleVisibility = 'off');
             end
 
-            xlim( ax, [0 max(x0)] );
-            if args.LogScale
+            if args.XLogScale
+                ax.XAxis.Scale = 'log';
+            else
+                xlim( ax, [0 max(x0)] );
+            end
+            
+            if args.YLogScale
                 ax.YAxis.Scale = 'log';
             elseif isfield(args, 'YLimits')
                 ylim(ax, args.YLimits);

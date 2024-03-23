@@ -19,7 +19,7 @@ function results = updateResults( results, idx, allocation, info )
             % field does not yet exist, so create it
             if length(info.(fld{i}))==1
                 % scalars so double array if fine
-                results.(fld{i}) = zeros( allocation );
+                results.(fld{i}) = nan( allocation );
             else
                 % vector so cell array is needed
                 results.(fld{i}) = cell( allocation );

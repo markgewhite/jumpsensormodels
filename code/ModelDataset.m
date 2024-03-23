@@ -15,7 +15,6 @@ classdef ModelDataset < handle
         CutoffFreq      % cutoff frequency for the filter
         FilterOrder     % Butterworth filter order
         FilterType      % filter type - low or high
-        Proportion      % proportion of the datasets full size
         VMDParams       % VMD parameters structure
                         %    Alpha           balancing parameter for data fidelity
                         %    NoiseTolerance  time-step of dual ascent
@@ -27,6 +26,7 @@ classdef ModelDataset < handle
                         %           2 = all omegas initialized randomly
                         %    Tolerance       tolerance for convergence
         VMD             % VMD features
+        CappedObs       % capped number of observations
     end
 
     properties (Dependent = true)
@@ -56,8 +56,8 @@ classdef ModelDataset < handle
                      mustBeGreaterThanOrEqual(args.FilterOrder, 3)} = 6
                 args.FilterType         char ...
                     {mustBeMember(args.FilterType, {'low', 'high'})} = 'low'
-                args.Proportion         double ...
-                    {mustBeInRange( args.Proportion, 0, 1 )} = 1.0
+                args.CappedObs          double ...
+                    {mustBeInteger, mustBePositive}
              % VMD parameters
                 args.Alpha              double ...
                     {mustBePositive} = 100
@@ -87,7 +87,7 @@ classdef ModelDataset < handle
             self.CutoffFreq = args.CutoffFreq;
             self.FilterOrder = args.FilterOrder;
             self.FilterType = args.FilterType;
-            self.Proportion = args.Proportion;
+            self.CappedObs = args.CappedObs;
 
             % set the VMD parameters
             self.VMDParams.Alpha = args.Alpha;
@@ -120,8 +120,8 @@ classdef ModelDataset < handle
             end
 
             % truncate the data if a subsample is required
-            if args.Proportion~=1
-                self.truncate( args.Proportion );
+            if ~isempty( self.CappedObs )
+                self.truncate;
             end
 
         end
@@ -203,26 +203,54 @@ classdef ModelDataset < handle
         end
 
 
-        function self = truncate( self, proportion )
-            % Truncate the dataset by taking a random smaller proportion
+        function self = truncate( self, cappedObs )
+            % Truncate the dataset to a capped number of observations
+            % by taking a random subselection
             arguments
                 self        ModelDataset
-                proportion  double {mustBeInRange(proportion, 0, 1)}
+                cappedObs   double {mustBeInteger, mustBePositive} = []
+            end
+        
+            if isempty(cappedObs)
+                cappedObs = self.CappedObs;
             end
 
-            unit = self.SubjectID;
-            uniqueUnit = unique( unit );
-
-            numUnits = length( uniqueUnit );
-            subset = randsample( numUnits, ceil(proportion*numUnits) );
-            selection = ismember( unit, uniqueUnit( subset ));
-
+            if cappedObs > self.NumObs
+                error('The capped number of observations exceed the available observations.');
+            end
+        
+            uniqueSubjects = unique( self.SubjectID );
+            numSubjects = length( uniqueSubjects );
+        
+            % create a random order of subjects
+            orderIdx = randperm( numSubjects );
+        
+            % count the number of subjects required to meet the requested number
+            count = 0;
+            for i = 1:numSubjects
+                count = count + nnz(self.SubjectID==uniqueSubjects(orderIdx(i)));
+                if count >= cappedObs
+                    break
+                end
+            end
+        
+            % obtain the row selection from the subjects included
+            selection = ismember( self.SubjectID, ...
+                                  uniqueSubjects(orderIdx(1:i)) );
+        
+            if count > cappedObs
+                % trim back the rows to meet the target
+                % by randomly removing rows selected
+                selectedIdx = find( selection );
+                dropSelectedIdx = randperm( count, count-cappedObs );
+                selection( selectedIdx(dropSelectedIdx) ) = false;
+            end
+        
             self.X = self.X( selection );
             self.XLen = self.XLen( selection );
             self.Y = self.Y( selection );
             self.SubjectID = self.SubjectID( selection );
-            self.VMD = self.VMD( selection, : );
-
+        
         end
 
 

@@ -39,8 +39,13 @@ yLabels = {'RMSE (ms)', 'Correlation', 'R^2', 'F'};
 
 yLimits = {[0 40], [0 0.8], [0.5 1], [0 150]};
 
-fig1 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, false );
-saveGraphicsObject( fig1, path, 'AlignmentQuality' );
+figS1 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, 1, false );
+leftSuperTitle( figS1, 'Smartphone Dataset', 'a' );
+saveGraphicsObject( figS1, path, 'AlignmentQualitySmart' );
+
+figS2 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, 2, false );
+leftSuperTitle( figS2, 'Accelerometer Dataset', 'b' );
+saveGraphicsObject( figS2, path, 'AlignmentQualityAccel' );
 
 
 %% Plot model performance as a consequence
@@ -53,12 +58,17 @@ numMetrics = length(metrics);
 
 yLimits = {[0 1.6], [0 1.6], [0 1.6], [0 1.6]};
 
-fig2 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, true );
-saveGraphicsObject( fig2, path, 'AlignmentModelPerformance' );
+figA1 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, 1, true );
+leftSuperTitle( figA1, 'Smartphone Dataset', 'a' );
+saveGraphicsObject( figA1, path, 'AlignmentPerfSmart' );
+
+figA2 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, 2, true );
+leftSuperTitle( figA2, 'Accelerometer Dataset', 'b' );
+saveGraphicsObject( figA2, path, 'AlignmentPerfAccel' );
 
 
 %% Generate figure
-function fig = createBarCharts( thisInvestigation, methods, metrics, metricNames, yLimits, titles, multiModel )
+function fig = createBarCharts( thisInvestigation, methods, metrics, metricNames, yLimits, titles, d, multiModel )
     % Generate the standard bar chart
     
     numMethods = length(methods);
@@ -67,58 +77,57 @@ function fig = createBarCharts( thisInvestigation, methods, metrics, metricNames
     fig = figure;
     fontname( fig, 'Arial' );
     fig.Position(3) = numMetrics*250+100;
-    fig.Position(4) = 500;
-    layout = tiledlayout( 2, numMetrics, TileSpacing='compact' );
-    for i = 1:2
-        for j = 1:numMetrics
-            ax = nexttile( layout );
+    fig.Position(4) = 300;
+    layout = tiledlayout( 1, numMetrics, TileSpacing='compact' );
 
-            if multiModel
-                k = j;
-            else
-                k = 1;
-            end
+    for i = 1:numMetrics
+        ax = nexttile( layout );
 
-            y = squeeze(thisInvestigation.TrainingResults.Mean.(metrics{j})(i,:,k))';
-            err = squeeze(thisInvestigation.TrainingResults.SD.(metrics{j})(i,:,k))';
-
-            if isfield(thisInvestigation.ValidationResults.Mean, metrics{j})
-                y = [y squeeze(thisInvestigation.ValidationResults.Mean.(metrics{j})(i,:,k))']; %#ok<*AGROW>
-                err = [err squeeze(thisInvestigation.ValidationResults.SD.(metrics{j})(i,:,k))'];
-            end
-    
-            if i==1
-                % no LMTakeoffActual for Smartphone
-                y(numMethods,:) = NaN;
-                err(numMethods,:) = NaN;
-            end
-    
-            obj = bar( ax, methods, y );
-            hold( ax, 'on' );
-
-            % locate the x coordinates of the bar end points
-            xErr = arrayfun( @(obj) obj.XEndPoints, obj, UniformOutput=false );
-            xErrorBars = cat(1,xErr{:})';
-
-            % Plot the error bars
-            errorbar( ax, xErrorBars, y, err, '.', 'Color', 'black', 'LineWidth', 1);
-
-            if i==1
-                % no method labels on the top row
-                ax.XTickLabel = [];
-            else
-                ax.XTickLabelRotation = 270;
-            end
-
-            ylabel( ax, metricNames{j} );
-            ylim( ax, yLimits{j} );
-            title( ax, titles{j} );
-    
-            if i==2 && j==1
-                legend( ax, {'Training', 'Validation'}, Location='northwest' );
-            end
-    
+        if multiModel
+            k = i;
+        else
+            k = 1;
         end
+
+        y = squeeze(thisInvestigation.TrainingResults.Mean.(metrics{i})(d,:,k))';
+        err = squeeze(thisInvestigation.TrainingResults.SD.(metrics{i})(d,:,k))';
+
+        if isfield(thisInvestigation.ValidationResults.Mean, metrics{i})
+            y = [y squeeze(thisInvestigation.ValidationResults.Mean.(metrics{i})(d,:,k))']; %#ok<*AGROW>
+            err = [err squeeze(thisInvestigation.ValidationResults.SD.(metrics{i})(d,:,k))'];
+        end
+
+        if d==1
+            % no LMTakeoffActual for Smartphone
+            y(numMethods,:) = NaN;
+            err(numMethods,:) = NaN;
+        end
+
+        obj = bar( ax, methods, y );
+        hold( ax, 'on' );
+
+        % locate the x coordinates of the bar end points
+        xErr = arrayfun( @(obj) obj.XEndPoints, obj, UniformOutput=false );
+        xErrorBars = cat(1,xErr{:})';
+
+        % Plot the error bars
+        errorbar( ax, xErrorBars, y, err, '.', 'Color', 'black', 'LineWidth', 1);
+
+        %if d==1
+            % no method labels on the top row
+        %    ax.XTickLabel = [];
+        %else
+        %    ax.XTickLabelRotation = 270;
+        %end
+
+        ylabel( ax, metricNames{i} );
+        ylim( ax, yLimits{i} );
+        title( ax, titles{i} );
+
+        if i==1
+            legend( ax, {'Training', 'Validation'}, Location='northwest' );
+        end
+
     end
 
 end

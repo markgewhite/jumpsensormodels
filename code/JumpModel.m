@@ -19,6 +19,7 @@ classdef JumpModel < handle
         ModelType           % type of model
         Model               % fitted model
         ModelArgs           % specific arguments for the model
+        Optimize            % whether to automatically optimize hyperparameters
         Timing              % struct holding execution times
         Loss                % loss
         Y                   % ground truth structure Y values
@@ -52,6 +53,7 @@ classdef JumpModel < handle
                             {'Linear', 'Ridge', 'Lasso', 'LassoSelect', ...
                              'LinearOpt', 'SVM', 'XGBoost'})} = 'Linear'
                 args.ModelArgs              struct
+                args.Optimize               logical = false
                 args.NumPredictors          double ...
                     {mustBeInteger, mustBePositive} = []
                 args.EvaluateOffsets        logical = false
@@ -72,6 +74,7 @@ classdef JumpModel < handle
             self.NumPredictors = args.NumPredictors;
             self.Path = args.Path;
             self.ModelType = args.ModelType;
+            self.Optimize = args.Optimize;
             self.EvaluateOffsets = args.EvaluateOffsets;
             self.StoreIndividualOffsets = args.StoreIndividualOffsets;            
             self.StoreIndividualBetas = args.StoreIndividualBetas;
@@ -154,39 +157,56 @@ classdef JumpModel < handle
 
             % select the model
             switch self.ModelType
+
                 case 'Linear'
-                    modelFcn = @(data) fitlm( data, 'linear' );
+                    modelFcn = @(data, args) fitlm( data, 'linear', args{:} );
+                    self.ModelArgs.Intercept = true; % default anyway but need to set at least one argument
+
                 case 'Ridge'
-                    modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), Regularization = 'ridge' );
+                    modelFcn = @(data, args) fitrlinear( data(:,1:end-1), data(:,end), args{:} );
+                    self.ModelArgs.Regularization = 'ridge';
+
                 case 'Lasso'
-                    modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), Regularization = 'lasso' );
+                    modelFcn = @(data, args) fitrlinear( data(:,1:end-1), data(:,end), args{:} );
+                    self.ModelArgs.Regularization = 'lasso';
+
                 case 'LassoSelect'
-                    modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), ...
-                                           Regularization = 'lasso', ...
-                                           Learner = 'leastsquares', ...
-                                           Lambda= getLassoLambda(normZ, normY, self.NumPredictors));
-                case 'LinearOpt'
-                    modelFcn = @(data) fitrlinear( data(:,1:end-1), data(:,end), OptimizeHyperparameters='auto' );
+                    modelFcn = @(data, args) fitrlinear( data(:,1:end-1), data(:,end), args{:} );
+                    self.ModelArgs.Regularization = 'lasso';
+                    self.ModelArgs.Learner = 'leastsquares';
+                    self.ModelArgs.Lambda = getLassoLambda(normZ, normY, self.NumPredictors);
+
                 case 'SVM'
+                    modelFcn = @(data, args) fitrsvm( data(:,1:end-1), data(:,end), args{:} );
+                    self.ModelArgs.KernelScale = 1; % default anyway but need to set at least one argument
                     if self.CompressModel
                         % do not save training data
-                        modelFcn = @(data) fitrsvm( data(:,1:end-1), data(:,end), SaveSupportVectors = 'off' );
-                    else
-                        modelFcn = @(data) fitrsvm( data(:,1:end-1), data(:,end) );
+                        self.ModelArgs.SaveSupportVectors = 'off';
                     end
+
                 case 'XGBoost'
-                    modelFcn = @(data) fitrensemble( data(:,1:end-1), data(:,end), Method = 'LSBoost', ...
-                        NumLearningCycles = 200, LearnRate = 0.1);
+                    modelFcn = @(data, args) fitrensemble( data(:,1:end-1), data(:,end), args{:} );
+                    self.ModelArgs.Method = 'LSBoost';
+                    self.ModelArgs.NumLearningCycles = 200;
+                    self.ModelArgs.LearnRate = 0.1;
+
+            end
+
+            if self.Optimize && self.ModelType~="Linear"
+                self.ModelArgs.OptimizeHyperparameters = 'auto';
+                self.ModelArgs.HyperparameterOptimizationOptions.Kfold = 2;
+                self.ModelArgs.HyperparameterOptimizationOptions.Repartition = true;
+                self.ModelArgs.HyperparameterOptimizationOptions.Verbose = 0;
+                self.ModelArgs.HyperparameterOptimizationOptions.ShowPlots = false;
+                self.ModelArgs.HyperparameterOptimizationOptions.MaxObjectiveEvaluations = 20;
             end
 
             warning('off', 'all');
+            
             % fit the model with optional additional arguments
-            if isempty(self.ModelArgs)
-                self.Model = modelFcn( data );
-            else
-                modelArgCell = namedargs2cell( self.ModelArgs );
-                self.Model = modelFcn( data, modelArgCell{:} );
-            end
+            modelArgCell = namedargs2cell( self.ModelArgs );
+            self.Model = modelFcn( data, modelArgCell );
+
             if ~isempty(lastwarn)
                 self.IsRankDeficient = strcmp( lastwarn, ...
                     'Regression design matrix is rank deficient to within machine precision.');
@@ -355,8 +375,9 @@ classdef JumpModel < handle
                     case {'Ridge', 'Lasso'}
 
                         % record the hyperparameters
-                        eval.Epsilon = self.Model.Epsilon;
-                        eval.Lambda = self.Model.Lambda;
+                        eval.LREpsilonLog10 = log10(self.Model.Epsilon);
+                        eval.LRLambdaLog10 = log10(self.Model.Lambda);
+                        eval.LRLearner = strcmp(self.Model.Learner, 'leastsquares');
 
                         % record the shrunk beta coefficients
                         for i = 1:length(self.Model.Beta)
@@ -366,8 +387,16 @@ classdef JumpModel < handle
                     case 'SVM'
 
                         % record the hyperparameters
-                        eval.Epsilon = self.Model.Epsilon;
+                        eval.SVMBoxConstraintLog10 = mean(log10(self.Model.BoxConstraints));
+                        eval.SVMKernelScaleLog10 = log10(self.Model.KernelParameters.Scale);
+                        eval.SVMEpsilonLog10 = log10(self.Model.Epsilon);
 
+                    case 'XGBoost'
+
+                        % record the hyperparameters
+                        eval.XGBMethod = strcmp(self.Model.Method, 'Bag');
+                        eval.XGBNumLearningCycles = self.Model.ModelParameters.NLearn;
+                        eval.XGBLearnRate = self.Model.ModelParameters.LearnRate;
 
                 end
 

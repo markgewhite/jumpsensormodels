@@ -6,9 +6,11 @@ path = fileparts( which('code/analyseSensitivity.m') );
 path = [path '/../results/'];
 
 setup.model.class = @JumpModel;
-setup.model.args.ModelType = 'Linear';
+setup.model.args.ModelType = 'XGBoost';
 setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
 setup.model.args.ContinuousEncodingArgs.NumComponents = 18;
+
+setup.model.args.Optimize = true;
 
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;
@@ -23,7 +25,7 @@ values = {{'Discrete', 'Continuous'}, ...
           2:2:26, ...
           {@SmartphoneDataset, @DelsysDataset}};
 
-myInvestigation = ParallelInvestigation( 'Sensitivity', path, parameters, values, setup );
+myInvestigation = Investigation( 'Sensitivity', path, parameters, values, setup );
 
 myInvestigation.run;
 

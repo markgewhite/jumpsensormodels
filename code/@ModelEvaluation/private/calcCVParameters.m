@@ -18,7 +18,11 @@ function aggrP = calcCVParameters( models, group, set )
         P = zeros( [nModels fldDim] );
         for k = 1:nModels
             if isfield( models{k}.(group).(set), fields{i} )
-                P(k,:,:,:) = models{k}.(group).(set).(fields{i});
+                if ~isempty(models{k}.(group).(set).(fields{i}))
+                    P(k,:,:,:) = models{k}.(group).(set).(fields{i});
+                else
+                    P(k,:,:,:) = NaN;
+                end
             else
                 P(k,:,:,:) = NaN;
             end

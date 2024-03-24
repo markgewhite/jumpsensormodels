@@ -7,11 +7,13 @@ path = [path '/../results/'];
 datasets = { @SmartphoneDataset, @DelsysDataset };
 methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...
                         'LMTakeoffDiscrete', 'LMTakeoffActual'};
+modelTypes = {'Linear', 'Lasso', 'SVM', 'XGBoost'};
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
 setup.model.args.ContinuousEncodingArgs.StoreXAligned = true;
 setup.model.args.StoreAlignmentMetrics = true;
+setup.model.args.Optimize = true;
 
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;
@@ -20,12 +22,14 @@ setup.eval.RandomSeed = 1234;
 setup.eval.InParallel = true;
 
 parameters = [ "data.class", ...
-               "model.args.ContinuousEncodingArgs.AlignmentMethod" ];
-values = { datasets, methods };
+               "model.args.ContinuousEncodingArgs.AlignmentMethod", ...
+               "model.args.ModelType" ];
+values = { datasets, methods, modelTypes };
 
-thisInvestigation = Investigation( 'AlignmentQuality', path, ...
+thisInvestigation = Investigation( 'AlignmentQuality2', path, ...
                                     parameters, values, setup, true );
 thisInvestigation.run;
+thisInvestigation.save;
 
 
 %% Plot alignment quality

@@ -23,14 +23,14 @@ parameters = [ "model.args.EncodingType", ...
                "data.class" ];
 values = {{'Discrete', 'Continuous'}, ...
           2:2:26, ...
-          {@SmartphoneDataset, @DelsysDataset}};
+          {@SmartphoneDataset, @AccelerometerDataset}};
 
 myInvestigation = Investigation( 'Sensitivity', path, parameters, values, setup );
 
 myInvestigation.run;
 
 %% produce scatter plots showing relationship between StdRMSE and chosen metrics
-setNames = ["Smartphone Dataset", "Delsys"];
+setNames = ["Smartphone Dataset", "Accelerometer"];
 metrics = ["SkewnessMean", "KurtosisMean", "VIFHighProp"];
 numMetrics = length(metrics);
 

@@ -1,5 +1,5 @@
-classdef DelsysDataset < ModelDataset
-    % Subclass for loading the smartphone jump data
+classdef AccelerometerDataset < ModelDataset
+    % Subclass for loading the Delsys jump data
 
     properties
         Set             % training, testing or combined (no purpose here)
@@ -10,7 +10,7 @@ classdef DelsysDataset < ModelDataset
 
     methods
 
-        function self = DelsysDataset( set, superArgs, args )
+        function self = AccelerometerDataset( set, superArgs, args )
             % Load the countermovement jump GRF dataset
             arguments
                 set                string ...
@@ -30,7 +30,7 @@ classdef DelsysDataset < ModelDataset
             end
 
             [ XRaw, Y, SubjectID, takeoffIdx ] = ...
-                                    DelsysDataset.load( args.JumpType, ...
+                                    AccelerometerDataset.load( args.JumpType, ...
                                                         args.Sensor, ...
                                                         args.OutcomeVar );
 
@@ -41,7 +41,7 @@ classdef DelsysDataset < ModelDataset
 
             self = self@ModelDataset( XRaw, Y, SubjectID, takeoffIdx, ...
                                       superArgsCell{:}, ...
-                                      Name = "Delsys Data", ...
+                                      Name = "Accelerometer Data", ...
                                       channelLabels = labels, ...
                                       SampleFreq = 250, ...
                                       CutoffFreq = 50);
@@ -73,7 +73,7 @@ classdef DelsysDataset < ModelDataset
 
         function [ XCell, Y, S, idx ] = load( type, sensor, outcome )
 
-            path = fileparts( which('DelsysDataset.m') );
+            path = fileparts( which('AccelerometerDataset.m') );
             path = [path '/../data/'];
             
             load( fullfile( path, 'DelsysJumpData.mat' ), 'delsysJumpData' );

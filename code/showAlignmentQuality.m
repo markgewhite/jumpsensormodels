@@ -4,7 +4,7 @@ clear
 path = fileparts( which('code/showAlignmentQuality.m') );
 path = [path '/../results/'];
 
-datasets = { @SmartphoneDataset, @DelsysDataset };
+datasets = { @SmartphoneDataset, @AccelerometerDataset };
 methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...
                         'LMTakeoffDiscrete', 'LMTakeoffActual'};
 modelTypes = {'Linear', 'Lasso', 'SVM', 'XGBoost'};

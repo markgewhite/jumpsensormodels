@@ -21,7 +21,7 @@ setup.eval.RetainAllParameters = true;
 parameters = [ "model.args.EncodingType", ...
                "data.class" ];
 values = {{'Discrete', 'Continuous'}, ...
-          {@SmartphoneDataset, @DelsysDataset}};
+          {@SmartphoneDataset, @AccelerometerDataset}};
 
 myInvestigation = Investigation( 'LinearModel', path, parameters, values, setup );
 
@@ -34,7 +34,7 @@ exportTableToLatex( results, fullfile(path, 'LinearModelStats') );
 
 %% create box plots for the beta coefficients
 titles = ["Smartphone (Discrete)", "Smartphone (Continuous)", ...
-          "Delsys (Discrete)", "Delsys (Continuous)"];
+          "Accelerometer (Discrete)", "Accelerometer (Continuous)"];
 
 fig1 = figure;
 fontname( fig1, 'Arial' );
@@ -80,7 +80,7 @@ end
 saveGraphicsObject( fig1, path, 'LinearBetaSpread' );
 
 %% generate an average correlation matrix combined discrete and continuous
-titles = ["Smartphone", "Delsys"];
+titles = ["Smartphone", "Accelerometer"];
 
 fig2 = figure;
 fontname(fig2, 'Arial');

@@ -6,11 +6,11 @@ path = [path '/../results/'];
 
 % load data
 data{1} = SmartphoneDataset( 'Combined' );
-data{2} = DelsysDataset( 'Combined' );
+data{2} = AccelerometerDataset( 'Combined' );
 
-titles = {'Smartphone Dataset', 'Delsys Dataset'};
+titles = {'Smartphone Dataset', 'Accelerometer Dataset'};
 letters = 'ab';
-filesnames = {'AlignmentSmart', 'AlignmentDelsys'};
+filesnames = {'AlignmentSmart', 'AlignmentAccelerometer'};
 
 % alignment methods
 methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...

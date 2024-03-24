@@ -21,22 +21,22 @@ path = [path '/../results/'];
 
 % load data
 smartData = SmartphoneDataset( 'Combined' );
-delsysData = DelsysDataset( 'Combined' );
+accelData = AccelerometerDataset( 'Combined' );
 
 % Discrete encodings
 discreteEncoding = DiscreteEncodingStrategy;
 discreteXSmart = discreteEncoding.extractFeatures( smartData );
-discreteXDelsys = discreteEncoding.extractFeatures( delsysData );
+discreteXAccelerometer = discreteEncoding.extractFeatures( accelData );
 
 figDDistSmart = plotDistributions( discreteXSmart, ...
                                    discreteEncoding.Names, ...
                                    varSelection, ...
                                    "Smartphone dataset (discrete encoding)", ...
                                    figLetters(1) );
-figDDistDelsys = plotDistributions( discreteXDelsys, ...
+figDDistAccelerometer = plotDistributions( discreteXAccelerometer, ...
                                     discreteEncoding.Names, ...
                                     varSelection, ...
-                                    "Delsys dataset (discrete encoding)", ...
+                                    "Accelerometer dataset (discrete encoding)", ...
                                     figLetters(2) );
 
 % Continuous encodings
@@ -45,9 +45,9 @@ contEncodingSmart = FPCAEncodingStrategy( NumComponents = numComp );
 contEncodingSmart = contEncodingSmart.fit( smartData );
 contXSmart = contEncodingSmart.extractFeatures( smartData );
 
-contEncodingDelsys = FPCAEncodingStrategy( NumComponents = numComp );
-contEncodingDelsys = contEncodingDelsys.fit( delsysData );
-contXDelsys = contEncodingDelsys.extractFeatures( delsysData );
+contEncodingAccelerometer = FPCAEncodingStrategy( NumComponents = numComp );
+contEncodingAccelerometer = contEncodingAccelerometer.fit( accelData );
+contXAccelerometer = contEncodingAccelerometer.extractFeatures( accelData );
 
 figCDistSmart = plotDistributions( contXSmart, ...
                                    contEncodingSmart.Names, ...
@@ -55,23 +55,23 @@ figCDistSmart = plotDistributions( contXSmart, ...
                                    "Smartphone dataset (continuous encoding)", ...
                                    figLetters(3) );
 
-figCDistDelsys = plotDistributions( contXDelsys, ...
-                                    contEncodingDelsys.Names, ...
+figCDistAccelerometer = plotDistributions( contXAccelerometer, ...
+                                    contEncodingAccelerometer.Names, ...
                                     compSelection, ...
-                                    "Delsys dataset (continuous encoding)", ...
+                                    "Accelerometer dataset (continuous encoding)", ...
                                     figLetters(4) );
 
 switch doc
     case 'Main'
         saveGraphicsObject( figDDistSmart, path, 'DiscDistSmartPredictors' );
-        saveGraphicsObject( figDDistDelsys, path, 'DiscDistDelsysPredictors' );
+        saveGraphicsObject( figDDistAccelerometer, path, 'DiscDistAccelerometerPredictors' );
         saveGraphicsObject( figCDistSmart, path, 'ContDistSmartPredictors' );
-        saveGraphicsObject( figCDistDelsys, path, 'ContDistDelsysPredictors' );
+        saveGraphicsObject( figCDistAccelerometer, path, 'ContDistAccelerometerPredictors' );
     case 'Supp'
         saveGraphicsObject( figDDistSmart, path, 'DiscDistSmartPredictors2' );
-        saveGraphicsObject( figDDistDelsys, path, 'DiscDistDelsysPredictors2' );
+        saveGraphicsObject( figDDistAccelerometer, path, 'DiscDistAccelerometerPredictors2' );
         saveGraphicsObject( figCDistSmart, path, 'ContDistSmartPredictors2' );
-        saveGraphicsObject( figCDistDelsys, path, 'ContDistDelsysPredictors2' );
+        saveGraphicsObject( figCDistAccelerometer, path, 'ContDistAccelerometerPredictors2' );
 end
 
 
@@ -92,9 +92,9 @@ args = namedargs2cell( eval );
 setup.data.class = @SmartphoneDataset;
 contEvalSmart = ModelEvaluation( 'ContVariationSmart', path, setup, args{:} );
 
-%% Delsys evaluation
-setup.data.class = @DelsysDataset;
-contEvalDelsys = ModelEvaluation( 'ContVariationDelsys', path, setup, args{:} );
+%% Accelerometer evaluation
+setup.data.class = @AccelerometerDataset;
+contEvalAccelerometer = ModelEvaluation( 'ContVariationAccelerometer', path, setup, args{:} );
 
 %% plot the spread in X across the folds
 titleSuffix = ['(Continuous: Alignment = '  ...
@@ -108,20 +108,20 @@ figCDistVarSmart = plotDistributions( contXSmartKFold, ...
                                       compSelection, ...
                                       ['Smartphone dataset ' titleSuffix], figLetters(3) );
 
-contXDelsysKFold = cellfun( @(mdl) table2array(mdl.Model.Variables), ...
-                           contEvalDelsys.Models, UniformOutput=false );
+contXAccelerometerKFold = cellfun( @(mdl) table2array(mdl.Model.Variables), ...
+                           contEvalAccelerometer.Models, UniformOutput=false );
 
-figCDistVarDelsys = plotDistributions( contXDelsysKFold, ...
-                                       contEncodingDelsys.Names, ...
+figCDistVarAccelerometer = plotDistributions( contXAccelerometerKFold, ...
+                                       contEncodingAccelerometer.Names, ...
                                        compSelection, ...
-                                       ['Delsys dataset ' titleSuffix], figLetters(4));
+                                       ['Accelerometer dataset ' titleSuffix], figLetters(4));
 switch doc
     case 'Main'
         saveGraphicsObject( figCDistVarSmart, path, 'ContVarDistSmartPredictors' );
-        saveGraphicsObject( figCDistVarDelsys, path, 'ContVarDistDelsysPredictors' );
+        saveGraphicsObject( figCDistVarAccelerometer, path, 'ContVarDistAccelerometerPredictors' );
     case 'Supp'
         saveGraphicsObject( figCDistVarSmart, path, 'ContVarDistSmartPredictors2' );
-        saveGraphicsObject( figCDistVarDelsys, path, 'ContVarDistDelsysPredictors2' );
+        saveGraphicsObject( figCDistVarAccelerometer, path, 'ContVarDistAccelerometerPredictors2' );
 end
 
 

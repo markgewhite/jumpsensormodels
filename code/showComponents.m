@@ -23,24 +23,24 @@ args = namedargs2cell( eval );
 setup.data.class = @SmartphoneDataset;
 contEvalSmart = ModelEvaluation( 'ContVariationSmart', path, setup, args{:} );
 
-%% Delsys evaluation
-setup.data.class = @DelsysDataset;
-contEvalDelsys = ModelEvaluation( 'ContVariationDelsys', path, setup, args{:} );
+%% Accelerometer evaluation
+setup.data.class = @AccelerometerDataset;
+contEvalAccelerometer = ModelEvaluation( 'ContVariationAccelerometer', path, setup, args{:} );
 
 %% plot the spread in X across the folds
 titleSuffix = ['(Continuous: Alignment = '  ...
                setup.model.args.ContinuousEncodingArgs.AlignmentMethod ')'];
 
 tRngSmart = [3 6]; %[ 9, 11 ];
-tRngDelsys = [2 5]; %[ 7, 10 ];
+tRngAccelerometer = [2 5]; %[ 7, 10 ];
 
 figFPCSmart = plotFPCSpread( contEvalSmart, numComp, ...
                              ['Smartphone ' titleSuffix], tRngSmart );
-figFPCDelsys = plotFPCSpread( contEvalDelsys, numComp, ...
-                              ['Delsys ' titleSuffix], tRngDelsys );
+figFPCAccelerometer = plotFPCSpread( contEvalAccelerometer, numComp, ...
+                              ['Accelerometer ' titleSuffix], tRngAccelerometer );
 
 saveGraphicsObject( figFPCSmart, path, 'SmartComponents' );
-saveGraphicsObject( figFPCDelsys, path, 'DelsysComponents' );
+saveGraphicsObject( figFPCAccelerometer, path, 'AccelerometerComponents' );
 
 
 

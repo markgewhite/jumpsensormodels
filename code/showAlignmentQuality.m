@@ -33,32 +33,32 @@ thisInvestigation.save;
 
 
 %% Plot alignment quality
-metrics = {'AlignmentRMSE', 'AlignmentPCC', 'AlignmentTDE'};
-titles = {'Alignment RMSE', 'Pearson Correlation', 'Time Delay Estimate'};
-yLabels = {'RMSE (ms)', 'Correlation', 'Time Delay (ms)'};
+metrics = {'AlignmentRMSE', 'AlignmentPCC', 'RSquared', 'FStat'};
+titles = {'Alignment RMSE', 'Pearson Correlation', 'R Squared', 'F-Statistic'};
+yLabels = {'RMSE (ms)', 'Correlation', 'R^2', 'F'};
 
-yLimits = {[0 40], [0 0.8], [-20 20]};
+yLimits = {[0 40], [0 0.8], [0.5 1], [0 150]};
 
-fig1 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles );
+fig1 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, false );
 saveGraphicsObject( fig1, path, 'AlignmentQuality' );
 
 
 %% Plot model performance as a consequence
 numMethods = length(methods);
-metrics = {'StdRMSE', 'RSquared', 'FStat'};
-titles = {'Prediction RMSE', 'Model R Squared', 'F-Statistic'};
+metrics = {'StdRMSE', 'StdRMSE', 'StdRMSE', 'StdRMSE'};
+titles = {'Linear', 'Lasso', 'SVM', 'XGBoost'};
 
-yLabels = {'RMSE (W/kg)', 'R Squared', 'F-Stat'};
+yLabels = {'RMSE (W/kg)', 'RMSE (W/kg)', 'RMSE (W/kg)', 'RMSE (W/kg)'};
 numMetrics = length(metrics);
 
-yLimits = {[0 1.6], [0.5 1.0], [0 150]};
+yLimits = {[0 1.6], [0 1.6], [0 1.6], [0 1.6]};
 
-fig2 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles );
+fig2 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, true );
 saveGraphicsObject( fig2, path, 'AlignmentModelPerformance' );
 
 
 %% Generate figure
-function fig = createBarCharts( thisInvestigation, methods, metrics, metricNames, yLimits, titles )
+function fig = createBarCharts( thisInvestigation, methods, metrics, metricNames, yLimits, titles, multiModel )
     % Generate the standard bar chart
     
     numMethods = length(methods);
@@ -66,19 +66,25 @@ function fig = createBarCharts( thisInvestigation, methods, metrics, metricNames
 
     fig = figure;
     fontname( fig, 'Arial' );
-    fig.Position(3) = 800;
+    fig.Position(3) = numMetrics*250+100;
     fig.Position(4) = 500;
     layout = tiledlayout( 2, numMetrics, TileSpacing='compact' );
     for i = 1:2
         for j = 1:numMetrics
             ax = nexttile( layout );
-    
-            y = thisInvestigation.TrainingResults.Mean.(metrics{j})(i,:)';
-            err = thisInvestigation.TrainingResults.SD.(metrics{j})(i,:)';
+
+            if multiModel
+                k = j;
+            else
+                k = 1;
+            end
+
+            y = squeeze(thisInvestigation.TrainingResults.Mean.(metrics{j})(i,:,k))';
+            err = squeeze(thisInvestigation.TrainingResults.SD.(metrics{j})(i,:,k))';
 
             if isfield(thisInvestigation.ValidationResults.Mean, metrics{j})
-                y = [y thisInvestigation.ValidationResults.Mean.(metrics{j})(i,:)']; %#ok<*AGROW>
-                err = [err thisInvestigation.ValidationResults.SD.(metrics{j})(i,:)'];
+                y = [y squeeze(thisInvestigation.ValidationResults.Mean.(metrics{j})(i,:,k))']; %#ok<*AGROW>
+                err = [err squeeze(thisInvestigation.ValidationResults.SD.(metrics{j})(i,:,k))'];
             end
     
             if i==1

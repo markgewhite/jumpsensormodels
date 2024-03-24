@@ -10,6 +10,8 @@ methods = {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding', ...
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
+setup.model.args.ContinuousEncodingArgs.StoreXAligned = true;
+setup.model.args.StoreAlignmentMetrics = true;
 
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;

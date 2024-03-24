@@ -29,6 +29,7 @@ classdef JumpModel < handle
         StoreIndividualBetas% store linear models' beta coefficients
         StoreIndividualVIFs % store measures of betas' multicollinearity
         StoreIndividualKSs  % store measures of betas' normality
+        StoreAlignmentMetrics % store measures of signal alignment
         CompressModel       % whether to compress the models
     end
 
@@ -58,6 +59,7 @@ classdef JumpModel < handle
                 args.StoreIndividualBetas   logical = false
                 args.StoreIndividualVIFs    logical = false
                 args.StoreIndividualKSs     logical = false
+                args.StoreAlignmentMetrics  logical = false
                 args.CompressModel          logical = false
             end
 
@@ -75,6 +77,7 @@ classdef JumpModel < handle
             self.StoreIndividualBetas = args.StoreIndividualBetas;
             self.StoreIndividualVIFs = args.StoreIndividualVIFs;
             self.StoreIndividualKSs = args.StoreIndividualKSs;
+            self.StoreAlignmentMetrics = args.StoreAlignmentMetrics;
             self.CompressModel = args.CompressModel;
 
             if isfield( args, 'ModelArgs' )
@@ -352,6 +355,15 @@ classdef JumpModel < handle
 
 
                 end
+
+            end
+
+            if self.StoreAlignmentMetrics && isa(self.EncodingStrategy, 'FPCAEncodingStrategy')
+
+                    % record alignment metrics
+                    [eval.AlignmentRMSE, eval.AlignmentPCC, ...
+                     eval.AlignmentNCC, eval.AlignmentTDE, ...
+                     eval.AlignmentMI] = self.EncodingStrategy.calcMetrics;
 
             end
             

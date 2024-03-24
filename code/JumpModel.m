@@ -287,7 +287,10 @@ classdef JumpModel < handle
                     [eval.AlignmentRMSE, eval.AlignmentPCC, ...
                      eval.AlignmentNCC, eval.AlignmentTDE, ...
                      eval.AlignmentMI] = self.EncodingStrategy.calcMetrics( thisDataset );
-                    eval.AlignmentOffsetRMSE = sqrt(mean(self.EncodingStrategy.FittedAlignmentIdx.^2);
+
+                    eval.AlignmentRMSE = 1000*eval.AlignmentRMSE/self.EncodingStrategy.SamplingFreq;
+                    eval.AlignmentOffsetRMSE = 1000*sqrt(mean(self.EncodingStrategy.FittedAlignmentIdx.^2)) ...
+                                                /self.EncodingStrategy.SamplingFreq;
                 end
                  
             end

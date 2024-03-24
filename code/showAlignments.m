@@ -58,7 +58,7 @@ for k = 1:2
         encoding.fit( data{k} );
 
         % calculate metrics
-        [rmse(k,i), pcc(k,i), ncc(k,i), tde(k,i), mi(k,i)] = encoding.calcMetrics;
+        [rmse(k,i), pcc(k,i), ncc(k,i), tde(k,i), mi(k,i)] = encoding.calcMetrics(datat{k});
 
         disp(['RMSE = ' num2str(rmse(k,i), '%.3f')]);
         disp(['PCC  = ' num2str(pcc(k,i), '%.3f')]);

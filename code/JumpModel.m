@@ -279,7 +279,19 @@ classdef JumpModel < handle
                 end
             end
 
-            % F-statistic (if linear)
+            if isa(self.EncodingStrategy, 'FPCAEncodingStrategy')
+
+                eval.RoughnessPenaltyLog10 = log10(self.EncodingStrategy.Lambda);
+                if self.StoreAlignmentMetrics
+                    % record alignment metrics
+                    [eval.AlignmentRMSE, eval.AlignmentPCC, ...
+                     eval.AlignmentNCC, eval.AlignmentTDE, ...
+                     eval.AlignmentMI] = self.EncodingStrategy.calcMetrics( thisDataset );
+                    eval.AlignmentOffsetRMSE = sqrt(mean(self.EncodingStrategy.FittedAlignmentIdx.^2);
+                end
+                 
+            end
+
             if extras 
                 % calculate extra metrics, first from the model fit
 
@@ -355,15 +367,6 @@ classdef JumpModel < handle
 
 
                 end
-
-            end
-
-            if self.StoreAlignmentMetrics && isa(self.EncodingStrategy, 'FPCAEncodingStrategy')
-
-                    % record alignment metrics
-                    [eval.AlignmentRMSE, eval.AlignmentPCC, ...
-                     eval.AlignmentNCC, eval.AlignmentTDE, ...
-                     eval.AlignmentMI] = self.EncodingStrategy.calcMetrics;
 
             end
             

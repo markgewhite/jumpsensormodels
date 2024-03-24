@@ -145,13 +145,17 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         end
 
 
-        function [rmse, pcc, ncc, tde, mi] = calcMetrics( self )
+        function [rmse, pcc, ncc, tde, mi] = calcMetrics( self, thisDataset )
             % Calculate the number of signals and signal length
             arguments
                 self                FPCAEncodingStrategy
+                thisDataset         ModelDataset
             end
 
-            numObs = size(self.XAlignedPts, 2);
+            % align the curves
+            X = self.alignCurves( thisDataset );
+
+            numObs = size(X, 2);
             
             % Initialize variables to store the metrics
             rmse = 0;
@@ -165,23 +169,23 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                 for j = i+1:numObs
 
                     % Calculate RMSE
-                    rmse = rmse + sqrt(mean((self.XAlignedPts(:,i) - self.XAlignedPts(:,j)).^2));
+                    rmse = rmse + sqrt(mean((X(:,i) - X(:,j)).^2));
                     
                     % Calculate PCC
-                    pcc = pcc + corr(self.XAlignedPts(:,i), self.XAlignedPts(:,j));
+                    pcc = pcc + corr(X(:,i), X(:,j));
                     
                     % Calculate cross-correlation
-                    [cc, lags] = xcorr(self.XAlignedPts(:,i), self.XAlignedPts(:,j));
+                    [cc, lags] = xcorr(X(:,i), X(:,j));
                     
                     % Calculate NCC
-                    ncc = ncc + max(cc) / sqrt(sum(self.XAlignedPts(:,i).^2) * sum(self.XAlignedPts(:,j).^2));
+                    ncc = ncc + max(cc) / sqrt(sum(X(:,i).^2) * sum(X(:,j).^2));
                     
                     % Calculate TDE
                     [~, maxIndex] = max(cc);
                     tde = tde + lags(maxIndex);
                     
                     % Calculate MI
-                    mi = mi + calculateMI(self.XAlignedPts(:,i), self.XAlignedPts(:,j));
+                    mi = mi + calculateMI(X(:,i), X(:,j));
 
                 end
             end

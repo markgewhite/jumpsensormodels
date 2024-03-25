@@ -213,11 +213,6 @@ classdef JumpModel < handle
             end
             warning('on', 'all');
 
-            % save memory by compressing, if required
-            if self.CompressModel && ~strcmp(self.ModelType, 'SVM')
-                self.Model = compact( self.Model );
-            end
-
         end
 
 
@@ -241,6 +236,9 @@ classdef JumpModel < handle
                 % clear memory
                 self.Y = [];
                 self.YHat = [];
+                if ~strcmp(self.ModelType, 'SVM')
+                    self.Model = compact( self.Model );
+                end
             end
     
         end
@@ -375,7 +373,6 @@ classdef JumpModel < handle
                     case {'Ridge', 'Lasso'}
 
                         % record the hyperparameters
-                        eval.LREpsilonLog10 = log10(self.Model.Epsilon);
                         eval.LRLambdaLog10 = log10(self.Model.Lambda);
                         eval.LRLearner = strcmp(self.Model.Learner, 'leastsquares');
 

@@ -9,9 +9,10 @@ function report = getResults( self )
     report.Path = self.Path;
     report.BaselineSetup = self.BaselineSetup;
     report.Parameters = self.Parameters;
+    report.SearchDims = self.SearchDims;
     report.GridSearch = self.GridSearch;
     report.IsComplete = self.IsComplete;
     report.TrainingResults = self.TrainingResults;
-    report.TestingResults = self.TestingResults;
+    report.ValidationResults = self.ValidationResults;
 
 end

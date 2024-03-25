@@ -6,20 +6,22 @@ function self = aggregateResults( self, d )
             {mustBeNonnegative, mustBeInteger} = 1
     end
 
-    flds = fieldnames( self.TrainingResults.Mean );
+    self.TrainingResults = aggregateSet( self.TrainingResults, d );
+
+    self.ValidationResults = aggregateSet( self.ValidationResults, d );
+
+end
+
+
+function results = aggregateSet( results, d )
+
+    flds = fieldnames( results.Mean );
     for i = 1:length(flds)
-        self.TrainingResults.Mean.(flds{i}) = ...
-                            mean( self.TrainingResults.Mean.(flds{i}), d );
-        self.TrainingResults.SD.(flds{i}) = ...
-                            mean( self.TrainingResults.SD.(flds{i}), d );
+        results.Mean.(flds{i}) = mean( results.Mean.(flds{i}), d );
+        results.SD.(flds{i}) = mean( results.SD.(flds{i}), d );
+        for j = 1:length(results.Models)
+            results.Models{j}.(flds{i}) = mean( results.Models{j}.(flds{i}), d );
+        end
     end
 
-    flds = fieldnames( self.ValidationResults.Mean );
-    for i = 1:length(flds)
-        self.ValidationResults.Mean.(flds{i}) = ...
-                        mean( self.ValidationResults.Mean.(flds{i}), d );
-        self.ValidationResults.SD.(flds{i}) = ...
-                        mean( self.ValidationResults.SD.(flds{i}), d );
-    end
-    
 end

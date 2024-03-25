@@ -29,21 +29,23 @@ values = { datasets, methods, modelTypes };
 thisInvestigation = Investigation( 'AlignmentQuality2', path, ...
                                     parameters, values, setup, true );
 thisInvestigation.run;
-thisInvestigation.save;
+report = thisInvestigation.saveReport;
 
 
 %% Plot alignment quality
-metrics = {'AlignmentRMSE', 'AlignmentPCC', 'RSquared', 'FStat'};
-titles = {'Alignment RMSE', 'Pearson Correlation', 'R Squared', 'F-Statistic'};
-yLabels = {'RMSE (ms)', 'Correlation', 'R^2', 'F'};
+methodsShort = methods;
+methodsShort{end} = '';
+metrics = {'AlignmentRMSE', 'AlignmentPCC', 'AlignmentMI'};
+titles = {'Alignment RMSE', 'Pearson Correlation', 'Mutual Information'};
+yLabels = {'RMSE (m/s^2)', 'Correlation', 'MI'};
 
-yLimits = {[0 40], [0 0.8], [0.5 1], [0 150]};
+yLimits = {[0 40], [0 0.8], [0 0.4]};
 
-figS1 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, 1, false );
+figS1 = createBarCharts( report, methodsShort, metrics, yLabels, yLimits, titles, 1, false );
 leftSuperTitle( figS1, 'Smartphone Dataset', 'a' );
 saveGraphicsObject( figS1, path, 'AlignmentQualitySmart' );
 
-figS2 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, 2, false );
+figS2 = createBarCharts( report, methods, metrics, yLabels, yLimits, titles, 2, false );
 leftSuperTitle( figS2, 'Accelerometer Dataset', 'b' );
 saveGraphicsObject( figS2, path, 'AlignmentQualityAccel' );
 
@@ -53,22 +55,22 @@ numMethods = length(methods);
 metrics = {'StdRMSE', 'StdRMSE', 'StdRMSE', 'StdRMSE'};
 titles = {'Linear', 'Lasso', 'SVM', 'XGBoost'};
 
-yLabels = {'RMSE (W/kg)', 'RMSE (W/kg)', 'RMSE (W/kg)', 'RMSE (W/kg)'};
+yLabels = {'Standardised RMSE', 'Standardised RMSE', 'Standardised RMSE', 'Standardised RMSE'};
 numMetrics = length(metrics);
 
 yLimits = {[0 1.6], [0 1.6], [0 1.6], [0 1.6]};
 
-figA1 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, 1, true );
+figA1 = createBarCharts( report, methodsShort, metrics, yLabels, yLimits, titles, 1, true );
 leftSuperTitle( figA1, 'Smartphone Dataset', 'a' );
 saveGraphicsObject( figA1, path, 'AlignmentPerfSmart' );
 
-figA2 = createBarCharts( thisInvestigation, methods, metrics, yLabels, yLimits, titles, 2, true );
+figA2 = createBarCharts( report, methods, metrics, yLabels, yLimits, titles, 2, true );
 leftSuperTitle( figA2, 'Accelerometer Dataset', 'b' );
 saveGraphicsObject( figA2, path, 'AlignmentPerfAccel' );
 
 
 %% Generate figure
-function fig = createBarCharts( thisInvestigation, methods, metrics, metricNames, yLimits, titles, d, multiModel )
+function fig = createBarCharts( report, methods, metrics, metricNames, yLimits, titles, d, multiModel )
     % Generate the standard bar chart
     
     numMethods = length(methods);
@@ -89,12 +91,12 @@ function fig = createBarCharts( thisInvestigation, methods, metrics, metricNames
             k = 1;
         end
 
-        y = squeeze(thisInvestigation.TrainingResults.Mean.(metrics{i})(d,:,k))';
-        err = squeeze(thisInvestigation.TrainingResults.SD.(metrics{i})(d,:,k))';
+        y = squeeze(report.TrainingResults.Mean.(metrics{i})(d,:,k))';
+        err = squeeze(report.TrainingResults.SD.(metrics{i})(d,:,k))';
 
-        if isfield(thisInvestigation.ValidationResults.Mean, metrics{i})
-            y = [y squeeze(thisInvestigation.ValidationResults.Mean.(metrics{i})(d,:,k))']; %#ok<*AGROW>
-            err = [err squeeze(thisInvestigation.ValidationResults.SD.(metrics{i})(d,:,k))'];
+        if isfield(report.ValidationResults.Mean, metrics{i})
+            y = [y squeeze(report.ValidationResults.Mean.(metrics{i})(d,:,k))']; %#ok<*AGROW>
+            err = [err squeeze(report.ValidationResults.SD.(metrics{i})(d,:,k))'];
         end
 
         if d==1

@@ -7,8 +7,10 @@ function fig = plotModelPerformance( report, ...
         metric              string
         metricName          string
         args.Set            char {mustBeMember(args.Set, {'Training', 'Validation'})}
+        args.XLimits        double
         args.YLimits        double
         args.YTickInterval  double
+        args.XTickInterval  double
         args.XLogScale      logical = false
         args.YLogScale      logical = false
         args.Percentiles    logical = false
@@ -16,6 +18,9 @@ function fig = plotModelPerformance( report, ...
             {mustBeMember(args.FitType, ...
                 {'none', 'poly1', 'poly2', 'poly3', 'poly4', ...
                  'power1', 'power2', 'exp1'})} = 'none'
+        args.FitCoefBounds  double
+        args.ShowFitCI      logical = false
+        args.FitLogLog      logical = false
     end
 
     % extract the grid search values
@@ -27,7 +32,7 @@ function fig = plotModelPerformance( report, ...
     % create the figure and layout
     fig = figure;
     fontname( fig, 'Arial' );
-    fig.Position(3) = 350*numEncodings + 100;
+    fig.Position(3) = 450*numEncodings + 100;
     fig.Position(4) = 250*numDatasets + 100;
     layout = tiledlayout( numDatasets, numEncodings, TileSpacing='compact' );
     colours = lines(numModelTypes);
@@ -53,7 +58,7 @@ function fig = plotModelPerformance( report, ...
     yAll = cat( 5, yAll{:} );
 
     % define extreme points
-    extreme = @(y) (abs(y)>1E3) | (abs(y-median(y))>5*iqr(y));
+    extreme = @(y) (abs(y)>1E3) | (abs(y)<1E-2) | (abs(y-median(y))>5*iqr(y));
 
     % extract the names for labels
     encodingNames = report.GridSearch{1};
@@ -73,41 +78,6 @@ function fig = plotModelPerformance( report, ...
                 % introduce jitter to the x points so they don't overlap
                 x = x0+randn(1,numPredictors)*jitter;
 
-                % include a best fit line of chosen type
-                if ~strcmp(args.FitType, 'none')
-
-                    % include only valid points
-                    ySubset = squeeze(y(j, :, i, k, :));
-                    isValid = ~isnan(ySubset);
-                    xValid = xAll(isValid);
-                    yValid = ySubset(isValid);
-
-                    % exclude any extreme values
-                    isExtreme = extreme(yValid);
-                    xValid = xValid(~isExtreme);
-                    yValid = yValid(~isExtreme);
-
-                    % create the fitting object
-                    [curveFit, ~] = fit(xValid, yValid, ...
-                                        fittype(args.FitType));
-                    
-                    % create a more granular scale
-                    xFit = linspace(min(x), max(x), 50);
-
-                    % evaluate the fitted curve
-                    [yFitCI, yFit] = predint(curveFit, xFit, 0.95, 'observation');
-
-                    % fill in a shared region showing uncertainty
-                    fill([xFit, fliplr(xFit)], [yFitCI(:,1); flipud(yFitCI(:,2))], ...
-                         colours(k,:), ...
-                         FaceAlpha=0.2, EdgeColor='none');
-
-                    % plot the best fit line
-                    plot(ax, xFit, yFit, '--', ...
-                         Color = colours(k,:), LineWidth = 2);
-
-                end
-
                 % plot the actual points
                 lineObj(k) = plot( ax, x, y(j, :, i, k), ...
                                   Marker = 'o', MarkerSize = 5, ...
@@ -119,29 +89,117 @@ function fig = plotModelPerformance( report, ...
                 errorbar(ax, x, y(j, :, i, k), ...
                     err{1}(j, :, i, k), err{2}(j, :, i, k), ...
                     LineStyle = 'none', ...
-                    Color = colours(k,:), LineWidth = 1, ...
-                    CapSize = 5, ...
+                    Color = colours(k,:), LineWidth = 0.75, ...
+                    CapSize = 4, ...
                     HandleVisibility = 'off');
+
+                % include a best fit line of chosen type
+                if ~strcmp(args.FitType, 'none')
+
+                    % include only valid points
+                    ySubset = squeeze(yAll(j, :, i, k, :));
+                    isValid = ~isnan(ySubset);
+                    xValid = xAll(isValid);
+                    yValid = ySubset(isValid);
+
+                    % exclude any extreme values
+                    isExtreme = extreme(yValid);
+                    xValid = xValid(~isExtreme);
+                    yValid = yValid(~isExtreme);
+
+                    if args.FitLogLog
+                        xValid = log10(xValid);
+                        yValid = log10(yValid);
+                    end
+
+                    % create the fitting object
+                    if isfield( args, 'FitCoefBounds' )
+                        [curveFit, ~] = fit(xValid, yValid, ...
+                                            fittype(args.FitType), ...
+                                            Robust = 'BiSquare', ...
+                                            Lower = args.FitCoefBounds(:,1), ...
+                                            Upper = args.FitCoefBounds(:,2) );
+                    else
+                        [curveFit, ~] = fit(xValid, yValid, ...
+                                            fittype(args.FitType), ...
+                                            Robust = 'BiSquare');
+                    end
+                    
+                    % create a more granular scale
+                    if isfield( args, 'XLimits' )
+                        if args.XLogScale
+                            xFit = logspace(log10(args.XLimits(1)), log10(args.XLimits(2)), 50);
+                        else
+                            xFit = linspace(args.XLimits(1), args.XLimits(2), 50);
+                        end
+                    else
+                        if args.XLogScale
+                            xFit = logspace(log10(min(x)), log10(max(x)), 50);
+                        else
+                            xFit = linspace(log10(min(x)), log10(max(x)), 50);
+                        end
+                    end
+
+                    if args.FitLogLog
+                        xFit = log10(xFit);
+                    end
+
+                    % evaluate the fitted curve
+                    [yFitCI, yFit] = predint(curveFit, xFit, 0.95, 'functional');
+
+                    if args.FitLogLog
+                        xFit = 10.^xFit;
+                        yFitCI = 10.^yFitCI;
+                        yFit = 10.^yFit;
+                    end
+
+                    if args.ShowFitCI
+                        % fill in a shared region showing uncertainty
+                        fill([xFit, fliplr(xFit)], [yFitCI(:,1); flipud(yFitCI(:,2))], ...
+                             colours(k,:), ...
+                             FaceAlpha=0.2, EdgeColor='none');
+                    end
+
+                    % plot the best fit line
+                    isExtrap = xFit>(1.1*max(xValid));
+                    plot(ax, xFit(~isExtrap), yFit(~isExtrap), ...
+                         Color = colours(k,:), LineWidth = 2.5);
+                    plot(ax, xFit(isExtrap), yFit(isExtrap), '.', ...
+                         Color = colours(k,:), LineWidth = 1);
+
+                end
 
             end
 
             % set the desired scales
+            if isfield( args, 'XLimits' )
+                xlim( ax, args.XLimits );
+                if isfield(args, 'XTickInterval')
+                    numTicks = ceil(args.XLimits(2)/args.XTickInterval);
+                    xTicks = args.XTickInterval:args.XTickInterval:numTicks*args.XTickInterval;
+                    xTickLabels = arrayfun(@(x) num2str(x, '%.0f'), xTicks, 'UniformOutput', false);
+                    ax.XTick = xTicks;
+                    ax.XTickLabel = xTickLabels;
+                end
+            end
+            
             if args.XLogScale
                 ax.XAxis.Scale = 'log';
-            else
-                xlim( ax, [0 max(x0)] );
+            end
+
+            if isfield(args, 'YLimits')
+                ylim(ax, args.YLimits);
+                if isfield(args, 'YTickInterval')
+                    numTicks = ceil(args.YLimits(2)/args.YTickInterval);
+                    yTicks = args.YTickInterval:args.YTickInterval:numTicks*args.YTickInterval;
+                    yTickLabels = arrayfun(@(x) num2str(x, '%.1f'), yTicks, 'UniformOutput', false);
+                    ax.YTick = yTicks;
+                    ax.YTickLabel = yTickLabels;
+                end
             end
 
             if args.YLogScale
                 ax.YAxis.Scale = 'log';
-            elseif isfield(args, 'YLimits')
-                ylim(ax, args.YLimits);
-                if isfield(args, 'YTickInterval')
-                    yTicks = args.YLimits(1):args.YTickInterval:args.YLimits(2);
-                    yTickLabels = arrayfun(@(x) num2str(x, '%.2f'), yTicks, 'UniformOutput', false);
-                    ax.YTick = yTicks;
-                    ax.YTickLabel = yTickLabels;
-                end
             end
 
             % finalise the plot

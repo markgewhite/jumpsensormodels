@@ -4,7 +4,7 @@ function [model, data] = linearModel( self, outcome, args )
         self            Investigation
         outcome         string
         args.Set        string {mustBeMember( ...
-                        args.Set, {'Training', 'Testing'} )} = 'Training'
+                        args.Set, {'Training', 'Validation'} )} = 'Training'
         args.Distribution   string {mustBeMember( ...
             args.Distribution, {'Normal', 'Binomial', 'Poisson', ...
                         'Gamma', 'Inverse Gaussian'} )} = 'Normal'
@@ -12,16 +12,12 @@ function [model, data] = linearModel( self, outcome, args )
         args.Criterion   string {mustBeMember( ...
             args.Criterion, {'Deviance', 'SSE', 'AIC', 'BIC', ...
                              'RSquared', 'AdjRSquared'} )} = 'AIC'
+        args.Steps          double = 50
         args.AllCategorical logical = true
         args.Interactions   logical = true
     end
 
-    switch args.Set
-        case 'Training'
-            results = 'TrainingResults';
-        case 'Testing'
-            results = 'TestingResults';
-    end
+    results = [char(args.Set) 'Results'];
 
     % compile the statistical model's training data
     data = [];
@@ -72,6 +68,7 @@ function [model, data] = linearModel( self, outcome, args )
                              Upper = modelSpec, ...
                              Distribution = args.Distribution, ...
                              Criterion = args.Criterion, ...
+                             NSteps = args.Steps, ...
                              Verbose = 2);
     else
         model = fitglm( data, modelSpec, ...

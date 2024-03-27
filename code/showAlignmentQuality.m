@@ -35,11 +35,11 @@ report = thisInvestigation.saveReport;
 %% Plot alignment quality
 methodsShort = methods;
 methodsShort{end} = '';
-metrics = {'AlignmentRMSE', 'AlignmentPCC', 'AlignmentMI'};
-titles = {'Alignment RMSE', 'Pearson Correlation', 'Mutual Information'};
-yLabels = {'RMSE (m/s^2)', 'Correlation', 'MI'};
+metrics = {'AlignmentRMSE', 'AlignmentPCC', 'AlignmentSNR'};
+titles = {'Alignment RMSE', 'Pearson Correlation', 'Signal-to-Noise Ratio'};
+yLabels = {'RMSE (m/s^2)', 'Correlation', 'SNR (dB)'};
 
-yLimits = {[0 40], [0 0.8], [0 0.4]};
+yLimits = {[0.5 1.5], [0 0.8], [-2 4]};
 
 figS1 = createBarCharts( report, methodsShort, metrics, yLabels, yLimits, titles, 1, false );
 leftSuperTitle( figS1, 'Smartphone Dataset', 'a' );
@@ -114,13 +114,6 @@ function fig = createBarCharts( report, methods, metrics, metricNames, yLimits, 
 
         % Plot the error bars
         errorbar( ax, xErrorBars, y, err, '.', 'Color', 'black', 'LineWidth', 1);
-
-        %if d==1
-            % no method labels on the top row
-        %    ax.XTickLabel = [];
-        %else
-        %    ax.XTickLabelRotation = 270;
-        %end
 
         ylabel( ax, metricNames{i} );
         ylim( ax, yLimits{i} );

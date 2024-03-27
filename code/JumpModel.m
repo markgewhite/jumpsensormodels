@@ -302,11 +302,15 @@ classdef JumpModel < handle
                 eval.RoughnessPenaltyLog10 = log10(self.EncodingStrategy.Lambda);
                 if self.StoreAlignmentMetrics
                     % record alignment metrics
-                    [eval.AlignmentRMSE, eval.AlignmentPCC, ...
-                     eval.AlignmentNCC, eval.AlignmentTDE, ...
-                     eval.AlignmentMI] = self.EncodingStrategy.calcMetrics( thisDataset );
+                    alignmentMetrics = self.EncodingStrategy.calcMetrics( thisDataset );
 
-                    eval.AlignmentRMSE = 1000*eval.AlignmentRMSE/self.EncodingStrategy.SamplingFreq;
+                    eval.AlignmentRMSE = alignmentMetrics.rmse;
+                    eval.AlignmentPCC = alignmentMetrics.pcc;
+                    eval.AlignmentNCC = alignmentMetrics.ncc;
+                    eval.AlignmentTDE = alignmentMetrics.tde;
+                    eval.AlignmentMI = alignmentMetrics.mi;
+                    eval.AlignmentSNR = alignmentMetrics.snr;
+
                     eval.AlignmentOffsetRMSE = 1000*sqrt(mean(self.EncodingStrategy.FittedAlignmentIdx.^2)) ...
                                                 /self.EncodingStrategy.SamplingFreq;
                 end

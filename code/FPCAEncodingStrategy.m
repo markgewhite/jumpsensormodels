@@ -145,7 +145,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         end
 
 
-        function [rmse, pcc, ncc, tde, mi] = calcMetrics( self, thisDataset )
+        function metrics = calcMetrics( self, thisDataset )
             % Calculate the number of signals and signal length
             arguments
                 self                FPCAEncodingStrategy
@@ -155,48 +155,50 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             % align the curves
             X = self.alignCurves( thisDataset );
 
-            numObs = size(X, 2);
-            
+            % normalise them
+            X = (X-mean(X))./std(X);
+           
             % Initialize variables to store the metrics
-            rmse = 0;
-            pcc = 0;
-            ncc = 0;
-            tde = 0;
-            mi = 0;
+            metrics.rmse = 0;
+            metrics.pcc = 0;
+            metrics.ncc = 0;
+            metrics.tde = 0;
+            metrics.mi = 0;
+            metrics.snr = 0;
 
             % Iterate over all pairs of signals
+            numObs = size(X, 2);
             for i = 1:numObs-1
                 for j = i+1:numObs
 
                     % Calculate RMSE
-                    rmse = rmse + sqrt(mean((X(:,i) - X(:,j)).^2));
+                    metrics.rmse = metrics.rmse + sqrt(mean((X(:,i) - X(:,j)).^2));
                     
                     % Calculate PCC
-                    pcc = pcc + corr(X(:,i), X(:,j));
-                    
-                    % Calculate cross-correlation
-                    [cc, lags] = xcorr(X(:,i), X(:,j));
-                    
+                    metrics.pcc = metrics.pcc + corr(X(:,i), X(:,j));
+
                     % Calculate NCC
-                    ncc = ncc + max(cc) / sqrt(sum(X(:,i).^2) * sum(X(:,j).^2));
+                    [cc, lags] = xcorr(X(:,i), X(:,j));
+                    metrics.ncc = metrics.ncc + max(cc) / sqrt(sum(X(:,i).^2) * sum(X(:,j).^2));
                     
                     % Calculate TDE
                     [~, maxIndex] = max(cc);
-                    tde = tde + lags(maxIndex);
+                    metrics.tde = metrics.tde + lags(maxIndex);
                     
                     % Calculate MI
-                    mi = mi + calculateMI(X(:,i), X(:,j));
+                    metrics.mi = metrics.mi + calculateMI(X(:,i), X(:,j));
+
+                    % Calculate SNR
+                    signalPwr = mean(X(:,j).^2);
+                    noisePwr = mean((X(:,i) - X(:,j)).^2);
+                    metrics.snr = metrics.snr + 10 * log10(signalPwr / noisePwr);
 
                 end
             end
             
             % Normalize the metrics by the number of signal pairs
             numPairs = (numObs * (numObs - 1)) / 2;
-            rmse = rmse / numPairs;
-            pcc = pcc / numPairs;
-            ncc = ncc / numPairs;
-            tde = tde / numPairs;
-            mi = mi / numPairs;
+            metrics = structfun( @(x) x/numPairs, metrics, UniformOutput=false );
 
         end
 

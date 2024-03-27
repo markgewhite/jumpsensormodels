@@ -26,13 +26,6 @@ numCols = ceil(numMethods/numRows);
 ax = gobjects( 2, numMethods );
 fig = gobjects( numMethods, 1 );
 
-rmse = zeros( 2, numMethods );
-pcc = zeros( 2, numMethods );
-ncc = zeros( 2, numMethods );
-tde = zeros( 2, numMethods );
-mi = zeros( 2, numMethods );
-alignmentRMSE = zeros( 1, numMethods );
-
 rng('default');
 for k = 1:numRows
 
@@ -60,20 +53,21 @@ for k = 1:numRows
         encoding.fit( data{k} );
 
         % calculate metrics
-        [rmse(k,i), pcc(k,i), ncc(k,i), tde(k,i), mi(k,i)] = encoding.calcMetrics(data{k});
+        metrics = encoding.calcMetrics(data{k});
 
         disp(['*** ' methods{i} ' ***']);
-        disp(['RMSE = ' num2str(rmse(k,i), '%.3f')]);
-        disp(['PCC  = ' num2str(pcc(k,i), '%.3f')]);
-        disp(['NCC  = ' num2str(ncc(k,i), '%.3f')]);
-        disp(['TDE  = ' num2str(tde(k,i), '%.3f')]);
-        disp(['MI   = ' num2str(mi(k,i), '%.3f')]);
+        disp(['RMSE = ' num2str(metrics.rmse, '%.3f')]);
+        disp(['PCC  = ' num2str(metrics.pcc, '%.3f')]);
+        disp(['NCC  = ' num2str(metrics.ncc, '%.3f')]);
+        disp(['TDE  = ' num2str(metrics.tde, '%.3f')]);
+        disp(['MI   = ' num2str(metrics.mi, '%.3f')]);
+        disp(['SNR  = ' num2str(metrics.snr, '%.3f')]);
 
         % compute alignment error
         if ~isempty(encoding.RefAlignmentIdx) && ~isempty(encoding.FittedAlignmentIdx) &&  ~isempty(encoding.LMAlignmentIdx)
             fittedPositionIdx = encoding.LMAlignmentIdx-encoding.FittedAlignmentIdx;
-            alignmentRMSE(i) = sqrt(mean((fittedPositionIdx-encoding.RefAlignmentIdx).^2));
-            disp(['Alignment RMSE = ' num2str(alignmentRMSE(i), '%6.2f')]);
+            alignmentRMSE = sqrt(mean((fittedPositionIdx-encoding.RefAlignmentIdx).^2));
+            disp(['Alignment RMSE = ' num2str(alignmentRMSE, '%6.2f')]);
         end
 
         % plot the aligned signals

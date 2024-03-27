@@ -10,17 +10,19 @@ data{2} = AccelerometerDataset( 'Combined' );
 
 titles = {'Smartphone Dataset', 'Accelerometer Dataset'};
 letters = 'ab';
-filesnames = {'AlignmentSmart', 'AlignmentAccelerometer'};
+filesnames = {'AlignmentSmart', 'AlignmentAccel'};
 
 % alignment methods
 methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...
-            'LMTakeoffDiscrete', 'LMTakeoffActual', 'LMTakeoffCorrection'};
+            'LMTakeoffDiscrete', 'LMTakeoffActual'};
 xCentre = [ 2.0, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0;
-            3.5, 3.5, 4.0, 4.0, 4.0, 4.0, 4.0 ];
+            3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5 ];
 xWidth = 1.5;
 
 % iterate over methods
 numMethods = length( methods );
+numRows = 2;
+numCols = ceil(numMethods/numRows);
 ax = gobjects( 2, numMethods );
 fig = gobjects( numMethods, 1 );
 
@@ -32,14 +34,14 @@ mi = zeros( 2, numMethods );
 alignmentRMSE = zeros( 1, numMethods );
 
 rng('default');
-for k = 1:2
+for k = 1:numRows
 
     fig(k) = figure;
     fontname( fig(k), 'Arial' );
     fig(k).Position(3) = 900;
     fig(k).Position(4) = 500;
     
-    layout = tiledlayout( 2, ceil(numMethods/2), TileSpacing='compact' );
+    layout = tiledlayout( numRows, numCols, TileSpacing='compact' );
 
     for i = 1:numMethods
 
@@ -58,8 +60,9 @@ for k = 1:2
         encoding.fit( data{k} );
 
         % calculate metrics
-        [rmse(k,i), pcc(k,i), ncc(k,i), tde(k,i), mi(k,i)] = encoding.calcMetrics(datat{k});
+        [rmse(k,i), pcc(k,i), ncc(k,i), tde(k,i), mi(k,i)] = encoding.calcMetrics(data{k});
 
+        disp(['*** ' methods{i} ' ***']);
         disp(['RMSE = ' num2str(rmse(k,i), '%.3f')]);
         disp(['PCC  = ' num2str(pcc(k,i), '%.3f')]);
         disp(['NCC  = ' num2str(ncc(k,i), '%.3f')]);
@@ -84,9 +87,12 @@ for k = 1:2
         xlim( ax(k,i), [max(xCentre(k,i)-xWidth,0) xCentre(k,i)+xWidth] );
         ylim( ax(k,i), [-10, 50] );
         xlabel( ax(k,i), 'Time (s)' );
-        ylabel( ax(k,1), 'Centred Acc (g)' );
         title( ax(k,i), methods(i) );
-        
+
+        if mod(i, numCols)==1
+            ylabel( ax(k,i), 'Acceleration (m/s^2)' );
+        end
+
         delete( encoding );
 
     end

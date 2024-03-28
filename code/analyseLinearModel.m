@@ -7,20 +7,21 @@ path = [path '/../results/'];
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
-setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
 setup.model.args.StoreIndividualBetas = true;
 setup.model.args.StoreIndividualVIFs = true;
 
 setup.eval.CVType = 'KFold';
 setup.eval.KFolds = 2;
-setup.eval.KFoldRepeats = 100;
+setup.eval.KFoldRepeats = 25;
 setup.eval.RandomSeed = 1234;
 setup.eval.InParallel = true;
 setup.eval.RetainAllParameters = true;
 
 parameters = [ "model.args.EncodingType", ...
+               "model.args.ContinuousEncodingArgs.AlignmentMethod", ...
                "data.class" ];
 values = {{'Discrete', 'Continuous'}, ...
+          {'LMTakeoff', 'XCMeanConv'}, ...
           {@SmartphoneDataset, @AccelerometerDataset}};
 
 myInvestigation = Investigation( 'LinearModel', path, parameters, values, setup );
@@ -33,48 +34,55 @@ results = myInvestigation.getMultiVarTable( metrics );
 exportTableToLatex( results, fullfile(path, 'LinearModelStats') );
 
 %% create box plots for the beta coefficients
-titles = ["Smartphone (Discrete)", "Smartphone (Continuous)", ...
-          "Accelerometer (Discrete)", "Accelerometer (Continuous)"];
+titles = ["Smartphone (Discrete)", "Smartphone (Continuous - LMTakeoff)",  ...
+          "Smartphone (Discrete)", "Smartphone (Continuous - XCMeanConv)", ...
+          "Accelerometer (Discrete)", "Accelerometer (Continuous - LMTakeoff)", ...
+          "Accelerometer (Discrete)", "Accelerometer (Continuous - XCMeanConv)" ];
+titles = reshape( titles, 2, 2, 2 );
 
 fig1 = figure;
 fontname( fig1, 'Arial' );
 fig1.Position(3) = 1200;
-fig1.Position(4) = 550;
-layout = tiledlayout(fig1, 2, 3, TileSpacing='loose' );
+fig1.Position(4) = 1100;
+layout = tiledlayout(fig1, 4, 3, TileSpacing='loose' );
 colours = lines(2);
-for i = 1:4
 
-    thisEvaluation = myInvestigation.Evaluations{i};
+for k = 1:2 % dataset
+    for j = 1:2 % alignment
+        for i = 1:2 % encoding
 
-    % compile the list of predictors (field names have beta prefix)
-    varNames = ["Intercept", thisEvaluation.Models{1}.PredictorNames];
-    fldNames = arrayfun( @(name) strcat("Beta", name), varNames );
-
-    values = thisEvaluation.getResultArray(fldNames);
-    varNames(1) = "Int.";
-
-    % create the box plot
-    ax = nexttile(layout);
-
-    if mod(i,2)==0
-        % continuous plot - short scale
-        makeBoxPlot( ax, values, varNames, colours(2,:), titles(i) );
-        ylim( ax, [-0.75 0.75] );
-
-    else
-        % discrete - one plot with wide scale, one with short scale
-        makeBoxPlot( ax, values, varNames, colours(1,:), ...
-                     strcat( titles(i), " - Widescale") );
-        ylim( ax, [-15 15] );
-
-        % generate another
-        ax = nexttile(layout);
-        makeBoxPlot( ax, values, varNames, colours(1,:), ...
-                     strcat( titles(i), " - Narrow scale") );
-        ylim( ax, [-0.75 0.75] );
-
+            thisEvaluation = myInvestigation.Evaluations{i,j,k};
+        
+            % compile the list of predictors (field names have beta prefix)
+            varNames = ["Intercept", thisEvaluation.Models{1}.PredictorNames];
+            fldNames = arrayfun( @(name) strcat("Beta", name), varNames );
+        
+            values = thisEvaluation.getResultArray(fldNames);
+            varNames(1) = "Int.";
+        
+            % create the box plot
+            ax = nexttile(layout);
+        
+            if i==2
+                % continuous plot - short scale
+                makeBoxPlot( ax, values, varNames, colours(2,:), titles(i,j,k) );
+                ylim( ax, [-0.75 0.75] );
+        
+            else
+                % discrete - one plot with wide scale, one with short scale
+                makeBoxPlot( ax, values, varNames, colours(1,:), ...
+                             strcat( titles(i), " - Widescale") );
+                ylim( ax, [-15 15] );
+        
+                % generate another
+                ax = nexttile(layout);
+                makeBoxPlot( ax, values, varNames, colours(1,:), ...
+                             strcat( titles(i), " - Narrow scale") );
+                ylim( ax, [-0.75 0.75] );
+        
+            end
+        end
     end
-
 end
 
 saveGraphicsObject( fig1, path, 'LinearBetaSpread' );

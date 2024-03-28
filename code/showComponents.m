@@ -2,52 +2,58 @@
 
 clear
 
-numComp = 3;
-
-path = fileparts( which('code/showComponents.m') );
-path = [path '/../results/'];
+method = {'LMTakeoff', 'XCMeanConv'};
+tRng = {[3 6; 2 5], [1 4; 2 5]};
+id = {'ac', 'bd'};
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
-setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
-setup.model.args.ContinuousEncodingArgs.NumComponents = numComp;
+setup.model.args.ContinuousEncodingArgs.NumComponents = 3;
 
-eval.CVType = 'KFold';
-eval.KFolds = 2;
-eval.KFoldRepeats = 25;
-eval.RandomSeed = 1234;
-eval.InParallel = true;
-args = namedargs2cell( eval );
+% LMTakeoff components
+evalAndPlot( setup, method{1}, tRng{1}, id{1} );
 
-%% Smartphone evaluation
-setup.data.class = @SmartphoneDataset;
-contEvalSmart = ModelEvaluation( 'ContVariationSmart', path, setup, args{:} );
-
-%% Accelerometer evaluation
-setup.data.class = @AccelerometerDataset;
-contEvalAccelerometer = ModelEvaluation( 'ContVariationAccelerometer', path, setup, args{:} );
-
-%% plot the spread in X across the folds
-titleSuffix = ['(Continuous: Alignment = '  ...
-               setup.model.args.ContinuousEncodingArgs.AlignmentMethod ')'];
-
-tRngSmart = [3 6]; %[ 9, 11 ];
-tRngAccelerometer = [2 5]; %[ 7, 10 ];
-
-figFPCSmart = plotFPCSpread( contEvalSmart, numComp, ...
-                             ['Smartphone ' titleSuffix], tRngSmart );
-figFPCAccelerometer = plotFPCSpread( contEvalAccelerometer, numComp, ...
-                              ['Accelerometer ' titleSuffix], tRngAccelerometer );
-
-saveGraphicsObject( figFPCSmart, path, 'SmartComponents' );
-saveGraphicsObject( figFPCAccelerometer, path, 'AccelerometerComponents' );
+% XCMeanConv components
+evalAndPlot( setup, method{2}, tRng{2}, id{2} );
 
 
+function evalAndPlot( setup, method, tRng, id )
 
+    path = fileparts( which('code/showComponents.m') );
+    path = [path '/../results/'];
 
+    eval.CVType = 'KFold';
+    eval.KFolds = 2;
+    eval.KFoldRepeats = 25;
+    eval.RandomSeed = 1234;
+    eval.InParallel = true;
+    args = namedargs2cell( eval );
 
+    setup.model.args.ContinuousEncodingArgs.AlignmentMethod = method;
+    numComp = setup.model.args.ContinuousEncodingArgs.NumComponents;
 
+    % Smartphone evaluation
+    setup.data.class = @SmartphoneDataset;
+    contEvalSmart = ModelEvaluation( 'ContVariationSmart', path, setup, args{:} );
+    
+    % Accelerometer evaluation
+    setup.data.class = @AccelerometerDataset;
+    contEvalAccel = ModelEvaluation( 'ContVariationAccelerometer', path, setup, args{:} );
 
+    % plot the spread in X across the folds
+    titleSuffix = ['(Continuous: Alignment = '  ...
+                   setup.model.args.ContinuousEncodingArgs.AlignmentMethod ')'];
+    
+    figFPCSmart = plotFPCSpread( contEvalSmart, numComp, ...
+                                 ['Smartphone ' titleSuffix], id(1), tRng(1,:) );
+    figFPCAccelerometer = plotFPCSpread( contEvalAccel, numComp, ...
+                                  ['Accelerometer ' titleSuffix], id(2), tRng(2,:) );
+
+    % save
+    saveGraphicsObject( figFPCSmart, path, ['FPCSmart-' method] );
+    saveGraphicsObject( figFPCAccelerometer, path, ['FPCAccel-' method] );
+
+end
 
 
 

@@ -1,9 +1,10 @@
-function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle, tRange )
+function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle, letter, tRange )
     % Plot the spread of components from the evaluation
     arguments
         thisEvaluation      ModelEvaluation
         numComp             double {mustBeInteger, mustBePositive}
         figTitle            string
+        letter              char
         tRange              double = []
     end
 
@@ -45,7 +46,7 @@ function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle, tRange )
         XPlusComps = XMeans + 2*XComps;
         XMinusComps = XMeans - 2*XComps;
 
-        caption = ['Component ' num2str(i)];
+        caption = ['FPC ' num2str(i)];
     
         % plot the components
         thisAxis = nexttile( layout );
@@ -71,6 +72,6 @@ function [fig, ax] = plotFPCSpread( thisEvaluation, numComp, figTitle, tRange )
 
     end
 
-    sgtitle( fig, figTitle );
+    leftSuperTitle( fig, figTitle, letter );
 
 end

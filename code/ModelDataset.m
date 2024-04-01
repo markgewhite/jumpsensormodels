@@ -97,10 +97,15 @@ classdef ModelDataset < handle
             self.VMDParams.OmegaInit = args.OmegaInit;
             self.VMDParams.Tolerance= args.Tolerance;
 
-            % store series
-            self.X = XRaw;
+            % count number of signals
             self.XLen = cellfun( @length, XRaw );
 
+            % centre the signals based on first half second
+            idx = fix( self.SampleFreq/2 );
+            self.X = cellfun( @(x) x-mean( x(1:idx,:) ), ...
+                              XRaw, ...
+                              UniformOutput=false );
+            
             % load VMD features 
             [vmd, vmdParams] = self.loadVMD;
 

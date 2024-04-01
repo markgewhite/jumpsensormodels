@@ -5,6 +5,7 @@ classdef SmartphoneDataset < ModelDataset
         Set             % training, testing or combined (no purpose here)
         JumpType        % whether 'CMJ' or 'SJ'
         SignalAligned   % whether the signal has been aligned vertically
+        SignalType      % type of acceleration represented
     end
 
     methods
@@ -20,6 +21,11 @@ classdef SmartphoneDataset < ModelDataset
                     {mustBeMember( args.JumpType , ...
                             {'CMJ', 'SJ'} )} = 'CMJ'
                 args.SignalAligned  logical = true
+                args.SignalType     string ...
+                    {mustBeMember( args.SignalType, ...
+                            {'LateralAcc', 'VerticalAcc', 'AnteroposteriorAcc', ...
+                             'ResultantAcc', '2DAcc', '3DAcc', ...
+                             'ResultantGyro', 'ResultantAccGyro', '6D'} )} = 'VerticalAcc'
             end
 
             [ XRaw, Y, SubjectID ] = SmartphoneDataset.load( args.JumpType );
@@ -39,6 +45,7 @@ classdef SmartphoneDataset < ModelDataset
             self.Set = set;
             self.JumpType = args.JumpType;
             self.SignalAligned = args.SignalAligned;
+            self.SignalType = args.SignalType;
 
             if args.SignalAligned
                 % align the signal vertically
@@ -50,13 +57,38 @@ classdef SmartphoneDataset < ModelDataset
 
         function accCell = getAcceleration( self )
             % Extract the preferred acceleration component
-            % Dimension 2 (vertical) 
             arguments
                 self            ModelDataset            
             end
-               
-            accCell = cellfun( @(x) x(:,2), self.X, ...
-                               UniformOutput = false );
+            
+            switch self.SignalType
+                case 'LateralAcc'
+                    accCell = cellfun( @(x) x(:,1), self.X, ...
+                                       UniformOutput = false );
+                case 'VerticalAcc'
+                    accCell = cellfun( @(x) x(:,2), self.X, ...
+                                       UniformOutput = false );
+                case 'AnteroposteriorAcc'
+                    accCell = cellfun( @(x) x(:,3), self.X, ...
+                                       UniformOutput = false );
+                case 'ResultantAcc'
+                    accCell = cellfun( @(x) sqrt(sum(x(:,1:3).^2, 2)), self.X, ...
+                                       UniformOutput = false );
+                case '2DAcc'
+                    accCell = cellfun( @(x) x(:,2:3), self.X, ...
+                                       UniformOutput = false );
+                case '3DAcc'
+                    accCell = cellfun( @(x) x(:,1:3), self.X, ...
+                                       UniformOutput = false );
+                case 'ResultantGyro'
+                    accCell = cellfun( @(x) sqrt(sum(x(:,4:6).^2, 2)), self.X, ...
+                                       UniformOutput = false );
+                case 'ResultantAccGyro'
+                    accCell = cellfun( @(x) sqrt(sum(x.^2, 2)), self.X, ...
+                                       UniformOutput = false );
+                case '6D'
+                    accCell = self.X;
+            end
 
         end
 

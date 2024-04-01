@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 8;
+testIndices = 10;
 catchErrors = true;
 
 % -- data setup --
@@ -208,6 +208,24 @@ for i = testIndices
             myInvestigation{i}.run;
 
 
+        case 10
+            name = 'ModelTest4';
+            setup.data.class = @SmartphoneDataset;
+            setup.model.args.EncodingType = 'Continuous';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
+
+            setup.eval.KFoldRepeats = 2;
+
+            parameters = [ "data.args.SignalType", ...
+                           "data.args.SignalAligned", ...
+                           "model.args.ModelType"];
+            values = { {'LateralAcc', 'VerticalAcc', 'AnteroposteriorAcc', 'ResultantAcc'}, ...
+                       {false, true}, ...
+                       {'Linear', 'Ridge', 'Lasso', 'SVM', 'XGBoost'} };
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
+            
+            myInvestigation{i}.run;
 
 
     end

@@ -22,7 +22,7 @@ classdef SmartphoneDataset < ModelDataset
                     {mustBeMember( args.JumpType , ...
                             {'CMJ', 'SJ'} )} = 'CMJ'
                 args.SignalAligned  logical = true
-                args.MadgwickBeta   double {mustBeInRange(args.MadgwickBeta, 1E-5, 1E1)} = 0.001
+                args.MadgwickBeta   double {mustBeInRange(args.MadgwickBeta, 1E-5, 1E1)} = 0.0001
                 args.SignalType     string ...
                     {mustBeMember( args.SignalType, ...
                             {'LateralAcc', 'VerticalAcc', 'AnteroposteriorAcc', ...
@@ -208,8 +208,6 @@ function acc_glob = orientate(X, fs, beta)
     acc_glob = quaternProd(acc_temp, quaternion_star);
 
     acc_glob = acc_glob( :, 2:end );
-    %offset = mean(acc_glob( 1:fs, 2:end ));
-    %acc_glob = acc_glob( :, 2:end ) - offset;
 
 end
 

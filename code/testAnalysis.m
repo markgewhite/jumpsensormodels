@@ -3,7 +3,7 @@
 clear;
 
 testIndices = 10;
-catchErrors = true;
+catchErrors = false;
 
 % -- data setup --
 setup.data.class = @AccelerometerDataset;

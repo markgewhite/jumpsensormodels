@@ -30,6 +30,11 @@ classdef SmartphoneDataset < ModelDataset
 
             [ XRaw, Y, SubjectID ] = SmartphoneDataset.load( args.JumpType );
 
+            if args.SignalAligned
+                % align the signal vertically
+                XRaw = align( XRaw, 128 );
+            end
+
             labels = { 'AccX', 'AccY', 'AccZ', 'GyrX', 'GyrY', 'GyrZ' };
 
             % process the data and complete the initialization
@@ -46,11 +51,6 @@ classdef SmartphoneDataset < ModelDataset
             self.JumpType = args.JumpType;
             self.SignalAligned = args.SignalAligned;
             self.SignalType = args.SignalType;
-
-            if args.SignalAligned
-                % align the signal vertically
-                self.align
-            end
             
         end
 
@@ -89,20 +89,6 @@ classdef SmartphoneDataset < ModelDataset
                 case '6D'
                     accCell = self.X;
             end
-
-        end
-
-
-        function align( self )
-            % Align all the signals vertically
-            arguments
-                self           SmartphoneDataset
-            end
-
-            for i = 1:self.NumObs
-                self.X{i}(:, 1:3) = orientate( self.X{i}, self.SampleFreq );
-            end
-                                              
 
         end
         
@@ -174,6 +160,20 @@ classdef SmartphoneDataset < ModelDataset
 end
 
 
+function X = align( X, fs )
+    % Align all the raw signals vertically
+    arguments
+        X           cell
+        fs          double
+    end
+
+    for i = 1:length(X)
+        X{i}(:, 1:3) = orientate( X{i}, fs );
+    end
+                                      
+end
+
+
 function acc_glob = orientate(X, fs)
     % Align signal vertically
     arguments
@@ -202,8 +202,9 @@ function acc_glob = orientate(X, fs)
     acc_temp = quaternProd(quaternion, acc_q);
     acc_glob = quaternProd(acc_temp, quaternion_star);
 
-    offset = mean(acc_glob( 1:fs, 2:end ));
-    acc_glob = acc_glob( :, 2:end ) - offset;
+    acc_glob = acc_glob( :, 2:end );
+    %offset = mean(acc_glob( 1:fs, 2:end ));
+    %acc_glob = acc_glob( :, 2:end ) - offset;
 
 end
 

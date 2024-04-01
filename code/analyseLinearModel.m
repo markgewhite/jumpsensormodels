@@ -42,9 +42,9 @@ titles = reshape( titles, 2, 2, 2 );
 
 fig1 = figure;
 fontname( fig1, 'Arial' );
-fig1.Position(3) = 1200;
-fig1.Position(4) = 1100;
-layout = tiledlayout(fig1, 4, 3, TileSpacing='loose' );
+fig1.Position(3) = 800;
+fig1.Position(4) = 1500;
+layout = tiledlayout(fig1, 4, 2, TileSpacing='loose' );
 colours = lines(2);
 
 for k = 1:2 % dataset
@@ -68,14 +68,13 @@ for k = 1:2 % dataset
                 makeBoxPlot( ax, values, varNames, colours(2,:), titles(i,j,k) );
                 ylim( ax, [-0.75 0.75] );
         
-            else
-                % discrete - one plot with wide scale, one with short scale
+            elseif j==2
+                % discrete - one plot with wide scale
                 makeBoxPlot( ax, values, varNames, colours(1,:), ...
                              strcat( titles(i), " - Widescale") );
                 ylim( ax, [-15 15] );
-        
-                % generate another
-                ax = nexttile(layout);
+            else
+                % discrete - one plot with narrow scale
                 makeBoxPlot( ax, values, varNames, colours(1,:), ...
                              strcat( titles(i), " - Narrow scale") );
                 ylim( ax, [-0.75 0.75] );

@@ -53,7 +53,7 @@ classdef JumpModel < handle
                             {'Linear', 'Ridge', 'Lasso', 'LassoSelect', ...
                              'LinearOpt', 'SVM', 'XGBoost'})} = 'Linear'
                 args.ModelArgs              struct
-                args.Optimize               logical = false
+                args.Optimize               logical = true
                 args.NumPredictors          double ...
                     {mustBeInteger, mustBePositive} = []
                 args.EvaluateOffsets        logical = false

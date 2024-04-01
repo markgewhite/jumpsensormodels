@@ -5,6 +5,7 @@ classdef SmartphoneDataset < ModelDataset
         Set             % training, testing or combined (no purpose here)
         JumpType        % whether 'CMJ' or 'SJ'
         SignalAligned   % whether the signal has been aligned vertically
+        MadgwickBeta    % step size for Madgwick's algorithm
         SignalType      % type of acceleration represented
     end
 
@@ -21,6 +22,7 @@ classdef SmartphoneDataset < ModelDataset
                     {mustBeMember( args.JumpType , ...
                             {'CMJ', 'SJ'} )} = 'CMJ'
                 args.SignalAligned  logical = true
+                args.MadgwickBeta   double {mustBeInRange(args.MadgwickBeta, 1E-5, 1E1)} = 0.001
                 args.SignalType     string ...
                     {mustBeMember( args.SignalType, ...
                             {'LateralAcc', 'VerticalAcc', 'AnteroposteriorAcc', ...
@@ -32,7 +34,7 @@ classdef SmartphoneDataset < ModelDataset
 
             if args.SignalAligned
                 % align the signal vertically
-                XRaw = align( XRaw, 128 );
+                XRaw = align( XRaw, 128, args.MadgwickBeta );
             end
 
             labels = { 'AccX', 'AccY', 'AccZ', 'GyrX', 'GyrY', 'GyrZ' };
@@ -50,6 +52,7 @@ classdef SmartphoneDataset < ModelDataset
             self.Set = set;
             self.JumpType = args.JumpType;
             self.SignalAligned = args.SignalAligned;
+            self.MadgwickBeta = args.MadgwickBeta;
             self.SignalType = args.SignalType;
             
         end
@@ -160,25 +163,27 @@ classdef SmartphoneDataset < ModelDataset
 end
 
 
-function X = align( X, fs )
+function X = align( X, fs, beta )
     % Align all the raw signals vertically
     arguments
         X           cell
         fs          double
+        beta        double
     end
 
     for i = 1:length(X)
-        X{i}(:, 1:3) = orientate( X{i}, fs );
+        X{i}(:, 1:3) = orientate( X{i}, fs, beta );
     end
                                       
 end
 
 
-function acc_glob = orientate(X, fs)
+function acc_glob = orientate(X, fs, beta)
     % Align signal vertically
     arguments
         X                   double {mustBeFloat}
         fs                  double {mustBePositive}
+        beta                double {mustBePositive}
     end
 
     acc = X(:, 1:3);
@@ -186,7 +191,7 @@ function acc_glob = orientate(X, fs)
 
     % create the orientation object
     AHRS = MadgwickAHRS(SamplePeriod = 1/fs, ...
-                        Beta = 0.001);
+                        Beta = beta);
     
     % correct for WRF alignemnt 
     time = linspace(0, length(acc) / fs, length(acc));

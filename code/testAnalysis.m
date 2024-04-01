@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 10;
+testIndices = 11;
 catchErrors = false;
 
 % -- data setup --
@@ -222,6 +222,26 @@ for i = testIndices
             values = { {'LateralAcc', 'VerticalAcc', 'AnteroposteriorAcc', 'ResultantAcc'}, ...
                        {false, true}, ...
                        {'Linear', 'Ridge', 'Lasso', 'SVM', 'XGBoost'} };
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
+            
+            myInvestigation{i}.run;
+
+        case 11
+            name = 'MadgwickTest';
+            setup.data.class = @SmartphoneDataset;
+            setup.model.args.EncodingType = 'Continuous';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
+            setup.model.args.ModelType = 'Linear';
+
+            setup.eval.KFoldRepeats = 2;
+
+            parameters = [ "data.args.SignalType", ...
+                           "data.args.SignalAligned", ...
+                           "data.args.MadgwickBeta"];
+            values = { {'LateralAcc', 'VerticalAcc', 'AnteroposteriorAcc', 'ResultantAcc'}, ...
+                       {false, true}, ...
+                       [0.0001 0.001 0.01 0.1 1] };
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             

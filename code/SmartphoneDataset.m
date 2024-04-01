@@ -32,8 +32,13 @@ classdef SmartphoneDataset < ModelDataset
 
             [ XRaw, Y, SubjectID ] = SmartphoneDataset.load( args.JumpType );
 
+            % remap the dimensions to [anteroposterior, lateral, vertical]
+            XRaw = cellfun( @(x) x(:, [3 1 2 6 4 5]), XRaw, ...
+                            UniformOutput=false );
+
             if args.SignalAligned
                 % align the signal vertically
+                disp('Aligning');
                 XRaw = align( XRaw, 128, args.MadgwickBeta );
             end
 
@@ -65,20 +70,20 @@ classdef SmartphoneDataset < ModelDataset
             end
             
             switch self.SignalType
-                case 'LateralAcc'
+                case 'AnteroposteriorAcc'
                     accCell = cellfun( @(x) x(:,1), self.X, ...
                                        UniformOutput = false );
-                case 'VerticalAcc'
+                case 'LateralAcc'
                     accCell = cellfun( @(x) x(:,2), self.X, ...
                                        UniformOutput = false );
-                case 'AnteroposteriorAcc'
+                case 'VerticalAcc'
                     accCell = cellfun( @(x) x(:,3), self.X, ...
                                        UniformOutput = false );
                 case 'ResultantAcc'
                     accCell = cellfun( @(x) sqrt(sum(x(:,1:3).^2, 2)), self.X, ...
                                        UniformOutput = false );
                 case '2DAcc'
-                    accCell = cellfun( @(x) x(:,2:3), self.X, ...
+                    accCell = cellfun( @(x) x(:,[1 3]), self.X, ...
                                        UniformOutput = false );
                 case '3DAcc'
                     accCell = cellfun( @(x) x(:,1:3), self.X, ...
@@ -180,6 +185,7 @@ end
 
 function acc_glob = orientate(X, fs, beta)
     % Align signal vertically
+    % Written by Claude 3 Opus
     arguments
         X                   double {mustBeFloat}
         fs                  double {mustBePositive}
@@ -189,9 +195,32 @@ function acc_glob = orientate(X, fs, beta)
     acc = X(:, 1:3);
     gyr = X(:, 4:6);
 
-    % create the orientation object
+    % Normalize the accelerometer measurement over the first 0.25 sec
+    idx = floor(fs/4);
+    g = mean(acc(1:idx,:));
+    g = g/norm(g);
+    gx = g(1);
+    gy = g(2);
+    gz = g(3);
+    
+    % Calculate the angle between the Earth frame's gravity vector and the sensor frame's gravity vector
+    theta = acos(gz);
+    
+    % Calculate the axis of rotation
+    axis = cross([0, 0, -1], [gx, gy, gz]);
+    axis = axis / norm(axis);
+    
+    % Construct the initial quaternion
+    qw = cos(theta / 2);
+    qx = axis(1) * sin(theta / 2);
+    qy = axis(2) * sin(theta / 2);
+    qz = axis(3) * sin(theta / 2);
+    q0 = [qw, qx, qy, qz];
+
+    % create the orientation object with the initial quaternion
     AHRS = MadgwickAHRS(SamplePeriod = 1/fs, ...
-                        Beta = beta);
+                        Beta = beta, ...
+                        Quaternion = q0);
     
     % correct for WRF alignemnt 
     time = linspace(0, length(acc) / fs, length(acc));

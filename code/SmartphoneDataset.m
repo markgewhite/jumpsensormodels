@@ -38,7 +38,6 @@ classdef SmartphoneDataset < ModelDataset
 
             if args.SignalAligned
                 % align the signal vertically
-                disp('Aligning');
                 XRaw = align( XRaw, 128, args.MadgwickBeta );
             end
 

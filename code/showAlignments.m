@@ -5,29 +5,35 @@ path = fileparts( which('code/showAlignments.m') );
 path = [path '/../results/'];
 
 % load data
-data{1} = SmartphoneDataset( 'Combined' );
-data{2} = AccelerometerDataset( 'Combined' );
+data{1} = SmartphoneDataset( 'Combined', SignalType='VerticalAcc' );
+data{2} = SmartphoneDataset( 'Combined', SignalType='VerticalAcc', SignalAligned=false );
+data{3} = SmartphoneDataset( 'Combined', SignalType='ResultantAcc' );
+data{4} = AccelerometerDataset( 'Combined' );
+numDatasets = length(data);
 
-titles = {'Smartphone Dataset', 'Accelerometer Dataset'};
-letters = 'ab';
-filesnames = {'AlignmentSmart', 'AlignmentAccel'};
+titles = {'Smartphone Dataset (Vertical)', 'Smartphone Dataset (Pseudo-Vertical)', ...
+          'Smartphone Dataset (Resultant)', 'Accelerometer Dataset'};
+letters = 'abcd';
+filesnames = {'AlignmentSmart', 'AlignmentSmart2', 'AlignmentSmart3', 'AlignmentAccel'};
 
 % alignment methods
 methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...
             'LMTakeoffDiscrete', 'LMTakeoffActual'};
 xCentre = [ 2.0, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0;
-            3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5 ];
+            2.0, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0;
+            5.5, 1.5, 4.0, 5.5, 4.0, 5.5, 4.0;  
+            3.5, 4.0, 3.5, 3.5, 3.5, 3.5, 3.5 ];
 xWidth = 1.5;
 
 % iterate over methods
 numMethods = length( methods );
 numRows = 2;
 numCols = ceil(numMethods/numRows);
-ax = gobjects( 2, numMethods );
+ax = gobjects( numDatasets, numMethods );
 fig = gobjects( numMethods, 1 );
 
 rng('default');
-for k = 1:numRows
+for k = 1:numDatasets
 
     fig(k) = figure;
     fontname( fig(k), 'Arial' );
@@ -38,10 +44,12 @@ for k = 1:numRows
 
     for i = 1:numMethods
 
-        if i==6 && k==1
+        if i==6 && k<3
             % no ground truth takeoff times for Smartphone
             continue
         end
+
+        ax(k,i) = nexttile( layout );
 
         encoding = FPCAEncodingStrategy( PenaltyOrder=1, ...
                                          AlignmentMethod=methods(i), ...
@@ -50,7 +58,11 @@ for k = 1:numRows
                                          AlignSquareDiff=false );
 
         % perform the encodings
-        encoding.fit( data{k} );
+        try
+            encoding.fit( data{k} );
+        catch
+            continue
+        end
 
         % calculate metrics
         metrics = encoding.calcMetrics(data{k});
@@ -72,8 +84,6 @@ for k = 1:numRows
 
         % plot the aligned signals
         t = linspace( 0, length(encoding.XAlignedPts), length(encoding.XAlignedPts) )/data{k}.SampleFreq;
-
-        ax(k,i) = nexttile( layout );
         
         plotSpread( ax(k,i), encoding.XAlignedPts+9.81, t );
     

@@ -97,15 +97,9 @@ classdef ModelDataset < handle
             self.VMDParams.OmegaInit = args.OmegaInit;
             self.VMDParams.Tolerance= args.Tolerance;
 
-            % store series lengths
+            % store series and its lengths
+            self.X = XRaw;
             self.XLen = cellfun( @length, XRaw );
-
-            % centre the signals based on first half second
-            idx = fix( self.SampleFreq/2 );
-            self.X = cellfun( @(x) x-mean( x(1:idx,:) ), ...
-                              XRaw, ...
-                              UniformOutput=false );
-            
 
             % load VMD features 
             [vmd, vmdParams] = self.loadVMD;
@@ -138,13 +132,20 @@ classdef ModelDataset < handle
         end
 
 
-        function Acc = get.Acc( self )
+        function acc = get.Acc( self )
             % Get the acceleration from X
             arguments
                 self            ModelDataset            
             end
-               
-            Acc = self.getAcceleration;
+            
+            % get the acceleration component(s)
+            % (abstracting the method so it can be overridden)
+            acc = self.getAcceleration;
+
+            % centre the signals based on first half second
+            idx = fix( self.SampleFreq/2 );
+            acc = cellfun( @(a) a-mean( a(1:idx,:) ), ...
+                           acc, UniformOutput=false );
 
         end
 

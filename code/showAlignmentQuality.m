@@ -5,9 +5,12 @@ path = fileparts( which('code/showAlignmentQuality.m') );
 path = [path '/../results/'];
 
 datasets = { @SmartphoneDataset, @AccelerometerDataset };
+signalTypes = {'VerticalAcc', 'ResultantAcc'};
 methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...
                         'LMTakeoffDiscrete', 'LMTakeoffActual'};
 modelTypes = {'Linear', 'Lasso', 'SVM', 'XGBoost'};
+
+setup.data.class = @SmartphoneDataset;
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
@@ -21,10 +24,27 @@ setup.eval.KFoldRepeats = 25;
 setup.eval.RandomSeed = 1234;
 setup.eval.InParallel = true;
 
-parameters = [ "data.class", ...
-               "model.args.ContinuousEncodingArgs.AlignmentMethod", ...
-               "model.args.ModelType" ];
-values = { datasets, methods, modelTypes };
+dataOption = input('Data Option = ', 's' );
+switch dataOption
+    case 'Standard'
+        parameters = [ "data.class", ...
+                       "model.args.ContinuousEncodingArgs.AlignmentMethod", ...
+                       "model.args.ModelType" ];  
+        values = { datasets, methods, modelTypes };
+    case 'SignalTypes1'
+        parameters = [ "data.args.SignalType", ...
+                       "model.args.ContinuousEncodingArgs.AlignmentMethod", ...
+                       "model.args.ModelType" ];  
+        values = { signalTypes, methods, modelTypes };
+    case 'SignalTypes2'
+        setup.data.args.SignalAligned = false;
+        parameters = [ "data.args.SignalType", ...
+                       "model.args.ContinuousEncodingArgs.AlignmentMethod", ...
+                       "model.args.ModelType" ];  
+        values = { signalTypes, methods, modelTypes };
+    otherwise
+        error('Unrecognised data option.');
+end
 
 thisInvestigation = Investigation( 'AlignmentQuality2', path, ...
                                     parameters, values, setup, true );

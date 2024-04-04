@@ -20,12 +20,10 @@ classdef SmartphoneDataset < ModelDataset
                 args.JumpType       string ...
                     {mustBeMember( args.JumpType , ...
                             {'CMJ', 'SJ'} )} = 'CMJ'
-                args.SignalAligned  logical = true
+                args.SignalAligned  logical = false
                 args.SignalType     string ...
                     {mustBeMember( args.SignalType, ...
-                            {'LateralAcc', 'VerticalAcc', 'AnteroposteriorAcc', ...
-                             'ResultantAcc', '2DAcc', '3DAcc', ...
-                             'ResultantGyro', 'ResultantAccGyro', '6D'} )} = 'VerticalAcc'
+                            {'VerticalAcc', 'ResultantAcc'} )} = 'ResultantAcc'
             end
 
             [ XRaw, Y, SubjectID ] = SmartphoneDataset.load( args.JumpType );
@@ -62,32 +60,12 @@ classdef SmartphoneDataset < ModelDataset
             end
             
             switch self.SignalType
-                case 'LateralAcc'
-                    accCell = cellfun( @(x) x(:,1), self.X, ...
-                                       UniformOutput = false );
                 case 'VerticalAcc'
                     accCell = cellfun( @(x) x(:,2), self.X, ...
-                                       UniformOutput = false );
-                case 'AnteroposteriorAcc'
-                    accCell = cellfun( @(x) x(:,3), self.X, ...
                                        UniformOutput = false );
                 case 'ResultantAcc'
                     accCell = cellfun( @(x) sqrt(sum(x(:,1:3).^2, 2)), self.X, ...
                                        UniformOutput = false );
-                case '2DAcc'
-                    accCell = cellfun( @(x) x(:,2:3), self.X, ...
-                                       UniformOutput = false );
-                case '3DAcc'
-                    accCell = cellfun( @(x) x(:,1:3), self.X, ...
-                                       UniformOutput = false );
-                case 'ResultantGyro'
-                    accCell = cellfun( @(x) sqrt(sum(x(:,4:6).^2, 2)), self.X, ...
-                                       UniformOutput = false );
-                case 'ResultantAccGyro'
-                    accCell = cellfun( @(x) sqrt(sum(x.^2, 2)), self.X, ...
-                                       UniformOutput = false );
-                case '6D'
-                    accCell = self.X;
             end
 
         end

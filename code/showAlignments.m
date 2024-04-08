@@ -13,8 +13,8 @@ letters = 'ab';
 filesnames = {'AlignmentSmart', 'AlignmentAccel'};
 
 % alignment methods
-methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...
-            'LMTakeoffDiscrete', 'LMTakeoffActual'};
+methods = {'XCMeanConv', 'XCRandom', 'LMTakeoffPeak', 'LMLandingPeak', ...
+            'LMTakeoffBiomechanical', 'LMTakeoffActual'};
 xCentre = [ 2.0, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0;
             3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5 ];
 xWidth = 1.5;

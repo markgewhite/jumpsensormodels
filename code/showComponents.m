@@ -2,7 +2,7 @@
 
 clear
 
-method = {'LMTakeoff', 'XCMeanConv'};
+method = {'LMTakeoffPeak', 'XCMeanConv'};
 tRng = {[3 6; 2 5], [1 4; 2 5]};
 id = {'ac', 'bd'};
 
@@ -10,7 +10,7 @@ setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'Linear';
 setup.model.args.ContinuousEncodingArgs.NumComponents = 3;
 
-% LMTakeoff components
+% LMTakeoffPeak components
 evalAndPlot( setup, method{1}, tRng{1}, id{1} );
 
 % XCMeanConv components

@@ -5,8 +5,8 @@ path = fileparts( which('code/showAlignmentQuality.m') );
 path = [path '/../results/'];
 
 datasets = { @SmartphoneDataset, @AccelerometerDataset };
-methods = {'XCMeanConv', 'XCRandom', 'LMTakeoff', 'LMLanding', ...
-                        'LMTakeoffDiscrete', 'LMTakeoffActual'};
+methods = {'XCMeanConv', 'XCRandom', 'LMTakeoffPeak', 'LMLandingPeak', ...
+                        'LMTakeoffBiomechanical', 'LMTakeoffActual'};
 modelTypes = {'Linear', 'Lasso', 'SVM', 'XGBoost'};
 
 setup.model.class = @JumpModel;

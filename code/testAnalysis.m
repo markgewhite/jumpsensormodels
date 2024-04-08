@@ -68,8 +68,8 @@ for i = testIndices
             parameters = [ "data.class", ...
                            "model.args.ContinuousEncodingArgs.AlignmentMethod" ];
             values = { {@SmartphoneDataset, @AccelerometerDataset}, ...
-                       {'XCRandom', 'XCMeanConv', 'LMTakeoff', 'LMLanding', ...
-                        'LMTakeoffDiscrete', 'LMTakeoffActual'} };
+                       {'XCRandom', 'XCMeanConv', 'LMTakeoffPeak', 'LMLandingPeak', ...
+                        'LMTakeoffBiomechanical', 'LMTakeoffActual'} };
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             
@@ -78,7 +78,7 @@ for i = testIndices
         case 3
             name = 'ModelTest3';
             setup.model.args.EncodingType = 'Continuous';
-            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffPeak';
 
             setup.eval.KFoldRepeats = 25;
 
@@ -212,7 +212,7 @@ for i = testIndices
             name = 'ModelTest4';
             setup.data.class = @SmartphoneDataset;
             setup.model.args.EncodingType = 'Continuous';
-            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffPeak';
 
             setup.eval.KFoldRepeats = 2;
 
@@ -230,7 +230,7 @@ for i = testIndices
         case 11
             name = 'SmoothingTest';
             setup.model.args.EncodingType = 'Continuous';
-            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffPeak';
 
             setup.eval.KFoldRepeats = 10;
 

@@ -7,7 +7,7 @@ path = [path '/../results/'];
 
 setup.model.class = @JumpModel;
 setup.model.args.ModelType = 'XGBoost';
-setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
+setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffPeak';
 setup.model.args.ContinuousEncodingArgs.NumComponents = 18;
 
 setup.model.args.Optimize = true;

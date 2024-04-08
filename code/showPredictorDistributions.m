@@ -4,7 +4,7 @@ clear;
 
 alignMethod = input('Alignment Method = ', 's');
 switch alignMethod
-    case 'LMTakeoff'
+    case 'LMTakeoffPeak'
         figLetters = 'adbe';
     case 'XCMeanConv'
         figLetters = 'adcf';

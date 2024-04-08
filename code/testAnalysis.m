@@ -2,8 +2,8 @@
 
 clear;
 
-testIndices = 10;
-catchErrors = true;
+testIndices = 12;
+catchErrors = false;
 
 % -- data setup --
 setup.data.class = @AccelerometerDataset;
@@ -222,6 +222,37 @@ for i = testIndices
             values = { {'LateralAcc', 'VerticalAcc', 'AnteroposteriorAcc', 'ResultantAcc'}, ...
                        {false, true}, ...
                        {'Linear', 'Ridge', 'Lasso', 'SVM', 'XGBoost'} };
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
+            
+            myInvestigation{i}.run;
+
+        case 11
+            name = 'SmoothingTest';
+            setup.model.args.EncodingType = 'Continuous';
+            setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoff';
+
+            setup.eval.KFoldRepeats = 10;
+
+            parameters = [ "data.class", ...
+                           "model.args.ContinuousEncodingArgs.BasisSeparation"];
+            values = {{@SmartphoneDataset, @AccelerometerDataset}, ...
+                      0.06:0.01:0.20};
+            
+            myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
+            
+            myInvestigation{i}.run;
+
+        case 12
+            name = 'PredSelectionTest';
+            setup.model.args.EncodingType = 'Discrete';
+
+            setup.eval.KFoldRepeats = 10;
+
+            parameters = [ "data.class", ...
+                           "model.args.NumPredictors"];
+            values = {{@SmartphoneDataset, @AccelerometerDataset}, ...
+                      1:26};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             

@@ -7,6 +7,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
         BasisOrder          % basis function order
         PenaltyOrder        % roughness penalty order
         Lambda              % roughness penalty
+        BasisSeparation     % basis function separation in seconds
         TSpan               % common timespan for FDA
         MeanFd              % mean curve as a functional data object
         CompFd              % component curves as functional data objects
@@ -37,6 +38,8 @@ classdef FPCAEncodingStrategy < EncodingStrategy
                     {mustBeInteger, mustBePositive} = 1
                 args.Lambda             double ...
                     {mustBePositive} = 1E-8
+                args.BasisSeparation    double ...
+                    {mustBePositive} = 0.1
                 args.AlignmentMethod    char ...
                     {mustBeMember( args.AlignmentMethod, ...
                         {'XCRandom', 'XCMeanConv', ...
@@ -66,6 +69,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             self.BasisOrder = args.BasisOrder;
             self.PenaltyOrder = args.PenaltyOrder;
             self.Lambda = args.Lambda;
+            self.BasisSeparation = args.BasisSeparation;
 
             self.AlignmentMethod = args.AlignmentMethod;
             self.AlignmentTolerance = args.AlignmentTolerance;
@@ -295,7 +299,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
             end
                
             % set the functional basis
-            numBasis = fix( self.Length/10 );
+            numBasis = fix( self.Length/(self.BasisSeparation*self.SamplingFreq) + self.PenaltyOrder );
             basisFd = create_bspline_basis( [self.TSpan(1) self.TSpan(end)], ...
                                             numBasis, ...
                                             self.BasisOrder );

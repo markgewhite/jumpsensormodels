@@ -44,7 +44,7 @@ classdef JumpModel < handle
                 args.Path                   string = ""
                 args.EncodingType           string ...
                     {mustBeMember( args.EncodingType, ...
-                            {'Discrete', 'Continuous'})} = 'Continuous'
+                            {'Discrete', 'Continuous', 'Combined'})} = 'Continuous'
                 args.Standardize            logical = true
                 args.DiscreteEncodingArgs   structT
                 args.ContinuousEncodingArgs struct
@@ -107,6 +107,20 @@ classdef JumpModel < handle
                         self.EncodingStrategy = FPCAEncodingStrategy( encodingArgs{:} );
                     else
                         self.EncodingStrategy = FPCAEncodingStrategy;
+                    end
+
+                case 'Combined'
+
+                    if isfield( args, 'DiscreteEncodingArgs' )
+                        encodingArgs.DiscreteEncodingArgs = args.DiscreteEncodingArgs;
+                    end
+                    if isfield( args, 'ContinuousEncodingArgs' )
+                        encodingArgs.ContinuousEncodingArgs = args.ContinuousEncodingArgs;
+                    end
+                    if exist('encodingArgs', 'var')
+                        self.EncodingStrategy = CombinedEncodingStrategy( encodingArgs );
+                    else
+                        self.EncodingStrategy = CombinedEncodingStrategy;
                     end
                     
             end

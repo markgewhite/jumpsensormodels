@@ -28,7 +28,7 @@ classdef FPCAEncodingStrategy < EncodingStrategy
     methods
 
         function self = FPCAEncodingStrategy( args )
-            % Initialize the model
+            % Initialize the encoding
             arguments
                 args.NumComponents      double ...
                     {mustBeInteger, mustBePositive} = 16

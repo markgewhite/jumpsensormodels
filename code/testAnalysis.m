@@ -245,7 +245,7 @@ for i = testIndices
 
         case 12
             name = 'PredSelectionTest';
-            setup.model.args.EncodingType = 'Discrete';
+            setup.model.args.EncodingType = 'Combined';
 
             setup.eval.KFoldRepeats = 10;
 

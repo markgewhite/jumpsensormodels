@@ -118,7 +118,8 @@ classdef JumpModel < handle
                         encodingArgs.ContinuousEncodingArgs = args.ContinuousEncodingArgs;
                     end
                     if exist('encodingArgs', 'var')
-                        self.EncodingStrategy = CombinedEncodingStrategy( encodingArgs );
+                        encodingArgsCell = namedargs2cell( encodingArgs );
+                        self.EncodingStrategy = CombinedEncodingStrategy( encodingArgsCell{:} );
                     else
                         self.EncodingStrategy = CombinedEncodingStrategy;
                     end

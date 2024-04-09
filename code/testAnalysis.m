@@ -252,7 +252,7 @@ for i = testIndices
             parameters = [ "data.class", ...
                            "model.args.NumPredictors"];
             values = {{@SmartphoneDataset, @AccelerometerDataset}, ...
-                      1:26};
+                      5:5:40};
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             

@@ -30,7 +30,7 @@ classdef CombinedEncodingStrategy < EncodingStrategy
             self.DiscreteEncodingMethod = DiscreteEncodingStrategy( discArgsCell{:} );
 
             if isfield(args, 'ContinuousEncodingArgs')
-                contArgsCell = namedargs2cell(args.DiscreteEncodingArgs);
+                contArgsCell = namedargs2cell(args.ContinuousEncodingArgs);
             else
                 contArgsCell = {};
             end

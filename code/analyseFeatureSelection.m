@@ -148,7 +148,7 @@ for i = 1:2 % dataset
         chart1.CData(:, :) = repmat(colours(1,:), numPredictors, 1);
         chart2.CData(:, :) = repmat(colours(2,:), numPredictors, 1);
 
-        ylim(ax, [0, 0.75]);
+        ylim(ax, [0, 0.4]);
         if i==2
             xlabel(ax, 'Available Features');
         end
@@ -166,3 +166,5 @@ for i = 1:2 % dataset
     
     end
 end
+
+saveGraphicsObject( fig2, path, 'SelectionBetas' );

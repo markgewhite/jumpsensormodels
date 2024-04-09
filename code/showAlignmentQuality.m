@@ -39,7 +39,7 @@ metrics = {'AlignmentRMSE', 'AlignmentPCC', 'AlignmentSNR'};
 titles = {'Alignment RMSE', 'Pearson Correlation', 'Signal-to-Noise Ratio'};
 yLabels = {'RMSE (m/s^2)', 'Correlation', 'SNR (dB)'};
 
-yLimits = {[0.5 1.5], [0 0.8], [-2 4]};
+yLimits = {[0.6 1.2], [0.2 0.8], [-1 3]};
 
 figS1 = createBarCharts( report, methodsShort, metrics, yLabels, yLimits, titles, 1, false );
 leftSuperTitle( figS1, 'Smartphone Dataset', 'a' );
@@ -58,7 +58,7 @@ titles = {'Linear', 'Lasso', 'SVM', 'XGBoost'};
 yLabels = {'Standardised RMSE', 'Standardised RMSE', 'Standardised RMSE', 'Standardised RMSE'};
 numMetrics = length(metrics);
 
-yLimits = {[0 1.6], [0 1.6], [0 1.6], [0 1.6]};
+yLimits = {[0 1.3], [0 1.3], [0 1.3], [0 1.3]};
 
 figA1 = createBarCharts( report, methodsShort, metrics, yLabels, yLimits, titles, 1, true );
 leftSuperTitle( figA1, 'Smartphone Dataset', 'a' );
@@ -78,8 +78,8 @@ function fig = createBarCharts( report, methods, metrics, metricNames, yLimits, 
 
     fig = figure;
     fontname( fig, 'Arial' );
-    fig.Position(3) = numMetrics*250+100;
-    fig.Position(4) = 300;
+    fig.Position(3) = numMetrics*300+100;
+    fig.Position(4) = 350;
     layout = tiledlayout( 1, numMetrics, TileSpacing='compact' );
 
     for i = 1:numMetrics
@@ -114,6 +114,16 @@ function fig = createBarCharts( report, methods, metrics, metricNames, yLimits, 
 
         % Plot the error bars
         errorbar( ax, xErrorBars, y, err, '.', 'Color', 'black', 'LineWidth', 1);
+
+        % Annotate validation values
+        if isfield(report.ValidationResults.Mean, metrics{i}) && multiModel
+            xVal = xErrorBars(:,2);
+            yVal = y(:,2);
+            for j = 1:numMethods
+                text(ax, xVal(j)-0.1, yVal(j), sprintf('%.3f', yVal(j)), ...
+                     'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+            end
+        end
 
         ylabel( ax, metricNames{i} );
         ylim( ax, yLimits{i} );

@@ -66,19 +66,19 @@ for k = 1:2 % dataset
             if i==2
                 % continuous plot - short scale
                 makeBoxPlot( ax, values, varNames, colours(2,:), titles(i,j,k) );
-                ylim( ax, [-0.75 0.75] );
+                ylim( ax, [-1 1] );
         
             else
                 % discrete - one plot with wide scale, one with short scale
                 makeBoxPlot( ax, values, varNames, colours(1,:), ...
                              strcat( titles(i), " - Widescale") );
-                ylim( ax, [-15 15] );
+                ylim( ax, [-10 10] );
         
                 % generate another
                 ax = nexttile(layout);
                 makeBoxPlot( ax, values, varNames, colours(1,:), ...
                              strcat( titles(i), " - Narrow scale") );
-                ylim( ax, [-0.75 0.75] );
+                ylim( ax, [-1 1] );
         
             end
         end

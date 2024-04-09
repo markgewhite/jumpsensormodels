@@ -18,7 +18,7 @@ switch doc
         varSelection = 1:5;
         compSelection = 1:5;
     case 'Supp'
-        varSelection = 1:26;
+        varSelection = 1:23;
         compSelection = 1:15;
     otherwise
         error('Unrecognised doc');

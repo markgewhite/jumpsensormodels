@@ -19,10 +19,14 @@ classdef CombinedEncodingStrategy < EncodingStrategy
             self = self@EncodingStrategy( 'TBD' );
 
             if isfield(args, 'DiscreteEncodingArgs')
-                discArgsCell = namedargs2cell(args.DiscreteEncodingArgs);
+                if ~isfield(args.DiscreteEncodingArgs, 'IncludeVMD')
+                    % set a default of including VMD, if not specified
+                    args.DiscreteEncodingArgs.IncludeVMD = true;
+                end
             else
-                discArgsCell = {};
+                args.DiscreteEncodingArgs.IncludeVMD = true;
             end
+            discArgsCell = namedargs2cell(args.DiscreteEncodingArgs);
             self.DiscreteEncodingMethod = DiscreteEncodingStrategy( discArgsCell{:} );
 
             if isfield(args, 'ContinuousEncodingArgs')

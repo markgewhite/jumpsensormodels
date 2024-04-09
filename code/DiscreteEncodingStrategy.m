@@ -7,6 +7,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
         FilterCutoff    % low-pass filter cutoff frequency
         FilterOrder     % order 
         IncludeHeight   % whether estimated jump height should be included
+        IncludeVMD      % whether the continuos features, VMD, should be included
         Onset           % jump onset detection parameters structure
                         %    Filter                 if signal filtering first
                         %    DetectionMethod        how to detect movement
@@ -32,6 +33,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 args.FilterOrder        double {mustBeInteger, ...
                     mustBeGreaterThan(args.FilterOrder, 3)} = 6
                 args.IncludeHeight      logical = true
+                args.IncludeVMD         logical = false
                 args.DetectionMethod        char ...
                     {mustBeMember( args.DetectionMethod, ...
                         {'SDMultiple', 'Absolute'})} = 'SDMultiple'
@@ -51,7 +53,14 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
 
             names = ["A", "b", "C", "D", "e", "F", "G", "H", "i", "J", ...
                      "k1", "l", "M", "n", "O", "p", "q", "r", "s", "u", ...
-                     "W", "z", "VMD1", "VMD2", "VMD3", "h"];
+                     "W", "z"];
+            if args.IncludeHeight
+                names = [names "h"];
+            end
+            if args.IncludeVMD
+                names = [names "VMD1", "VMD2", "VMD3"];
+            end
+
             self = self@EncodingStrategy( names );
 
             % set acceleration due to gravity and sampling
@@ -62,6 +71,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             self.FilterCutoff = args.FilterCutoff;
             self.FilterOrder = args.FilterOrder;
             self.IncludeHeight = args.IncludeHeight;
+            self.IncludeVMD = args.IncludeVMD;
 
             % set the jump onset parameters
             self.Onset.Filter = args.FilterForStart;
@@ -104,7 +114,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
             numNodes = thisDataset.VMDParams.NumModes;
 
             % compute features for one observations at a time
-            Z = zeros( numObs, 22 + numNodes + self.IncludeHeight );
+            Z = zeros( numObs, 22 + self.IncludeHeight + numNodes*self.IncludeVMD  );
             offsetIdx = zeros( numObs, 1 );
             for i = 1:numObs
                 
@@ -125,10 +135,7 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                             get_features_GPL_CMJ(thisDataset.Acc{i}, self.SamplingFreq, 0);
                     catch
                         disp(['Legacy code error: row = ' num2str(i)]);
-                        times = NaN;
                     end
-                else
-                    times = NaN;
                 end
 
                 if self.Filtering
@@ -155,38 +162,21 @@ classdef DiscreteEncodingStrategy < EncodingStrategy
                 pwr  = self.calcPwrCurve( t0, tTO, acc, vel );
 
                 % calculate jump features
-                featuresJump = self.calcJumpFeatures( t0, tUB, tBP, tTO, ...
+                features = self.calcJumpFeatures( t0, tUB, tBP, tTO, ...
                                                       acc, vel, pwr );
-                % perform VMD
-                featuresVMD = vmd( i, : );
-
-                % assemble features vector
                 if self.IncludeHeight
                     % calculate the jump height
                     h = self.calcJumpHeight( tTO, vel );
-                    Z( i, : ) = [featuresJump featuresVMD round(100*h)];
-                else
-                    Z( i, : ) = [featuresJump featuresVMD];
+                    features = [features round(100*h)]; %#ok<AGROW>
                 end
 
-                %disp(['i = ' num2str(i) '; ' num2str(featuresJump)]);
-
-                % plot the timing points, if required
-                if self.PlotTimePts
-                    plotTimingPts( ax, acc{i}, [t0, tUB, tBP, tTO], times );
-                    text( ax, 0.1, 0.8, num2str(i), units = 'normalized' );
-                    isInSeq = all( diff( [t0, tUB, tBP, tTO] )>0 );
-                    if ~isInSeq
-                        msg = 'OUT OF ORDER';
-                    else
-                        msg = '';
-                    end
-                    disp([num2str(i) ': t0 = ' num2str(t0)  ...
-                          '; tUB = ' num2str(tUB) ...
-                          '; tBP = ' num2str(tBP) ...
-                          '; tTO = ' num2str(tTO) ...
-                          '; ' msg] );
+                if self.IncludeVMD
+                    % perform VMD
+                    features = [features vmd( i, : )]; %#ok<AGROW>
                 end
+
+                % store the features vector
+                Z( i, : ) = features;
 
                 % store for reference
                 offsetIdx(i) = eval( self.ReturnVar );

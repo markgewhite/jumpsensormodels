@@ -17,7 +17,12 @@ function fig = plotModelPerformance( report, ...
         args.FitType        char ...
             {mustBeMember(args.FitType, ...
                 {'none', 'poly1', 'poly2', 'poly3', 'poly4', ...
-                 'power1', 'power2', 'exp1'})} = 'none'
+                 'power1', 'power2', 'exp1', ...
+                 'smoothingspline', 'lowess', 'loess', 'gpr'})} = 'none'
+        args.SplineParameter double = 0.05
+        args.GPBasisFunction char ...
+            {mustBeMember(args.GPBasisFunction, ...
+                {'none', 'constant', 'linear', 'pureQuadratic'})} = 'none'
         args.FitCoefBounds  double
         args.ShowFitCI      logical = false
         args.FitLogLog      logical = false
@@ -29,10 +34,14 @@ function fig = plotModelPerformance( report, ...
     numDatasets = report.SearchDims(3);
     numModelTypes = report.SearchDims(4);
 
+    % define the parametric and non-parametric fit types
+    parametricFitTypes = {'poly1', 'poly2', 'poly3', 'poly4', 'power1', 'power2', 'exp1'};
+    nonparametricFitTypes = {'smoothingspline', 'lowess', 'loess', 'gpr'};
+
     % create the figure and layout
     fig = figure;
     fontname( fig, 'Arial' );
-    fig.Position(3) = 450*numEncodings + 100;
+    fig.Position(3) = 300*numEncodings + 100;
     fig.Position(4) = 250*numDatasets + 100;
     layout = tiledlayout( numDatasets, numEncodings, TileSpacing='compact' );
     colours = lines(numModelTypes);
@@ -112,40 +121,13 @@ function fig = plotModelPerformance( report, ...
                         yValid = log10(yValid);
                     end
 
-                    % create the fitting object
-                    if isfield( args, 'FitCoefBounds' )
-                        [curveFit, ~] = fit(xValid, yValid, ...
-                                            fittype(args.FitType), ...
-                                            Robust = 'BiSquare', ...
-                                            Lower = args.FitCoefBounds(:,1), ...
-                                            Upper = args.FitCoefBounds(:,2) );
-                    else
-                        [curveFit, ~] = fit(xValid, yValid, ...
-                                            fittype(args.FitType), ...
-                                            Robust = 'BiSquare');
+                    if ismember(args.FitType, parametricFitTypes)
+                        % parametric curve fitting
+                        [curveFit, xFit, yFit, yFitCI] = fitParametricCurve(xValid, yValid, args);
+                    elseif ismember(args.FitType, nonparametricFitTypes)
+                        % non-parametric curve fitting
+                        [xFit, yFit, yFitCI] = fitNonparametricCurve(xValid, yValid, args);
                     end
-                    
-                    % create a more granular scale
-                    if isfield( args, 'XLimits' )
-                        if args.XLogScale
-                            xFit = logspace(log10(args.XLimits(1)), log10(args.XLimits(2)), 50);
-                        else
-                            xFit = linspace(args.XLimits(1), args.XLimits(2), 50);
-                        end
-                    else
-                        if args.XLogScale
-                            xFit = logspace(log10(min(x)), log10(max(x)), 50);
-                        else
-                            xFit = linspace(log10(min(x)), log10(max(x)), 50);
-                        end
-                    end
-
-                    if args.FitLogLog
-                        xFit = log10(xFit);
-                    end
-
-                    % evaluate the fitted curve
-                    [yFitCI, yFit] = predint(curveFit, xFit, 0.95, 'functional');
 
                     if args.FitLogLog
                         xFit = 10.^xFit;
@@ -215,4 +197,78 @@ function fig = plotModelPerformance( report, ...
         end
     end
 
+end
+
+
+function [curveFit, xFit, yFit, yFitCI] = fitParametricCurve(x, y, args)
+    % Fit a parametric curve to the data
+    if isfield(args, 'FitCoefBounds')
+        [curveFit, ~] = fit(x, y, fittype(args.FitType), ...
+                            'Robust', 'BiSquare', ...
+                            'Lower', args.FitCoefBounds(:,1), ...
+                            'Upper', args.FitCoefBounds(:,2));
+    else
+        [curveFit, ~] = fit(x, y, fittype(args.FitType), 'Robust', 'BiSquare');
+    end
+
+    % Create a more granular scale for the fitted curve
+    if isfield(args, 'XLimits')
+        if args.XLogScale
+            xFit = logspace(log10(args.XLimits(1)), log10(args.XLimits(2)), 50);
+        else
+            xFit = linspace(args.XLimits(1), args.XLimits(2), 50);
+        end
+    else
+        if args.XLogScale
+            xFit = logspace(log10(min(x)), log10(max(x)), 50);
+        else
+            xFit = linspace(min(x), max(x), 50);
+        end
+    end
+
+    % Evaluate the fitted curve
+    [yFitCI, yFit] = predint(curveFit, xFit, 0.95, 'functional');
+end
+
+
+function [xFit, yFit, yFitCI] = fitNonparametricCurve(x, y, args)
+    % Fit a non-parametric curve to the data
+    switch args.FitType
+
+        case 'smoothingspline'
+            % Fit a spline curve to the data
+            smoothingSpline = fit(x, y, 'smoothingspline', ...
+                                  SmoothingParam = args.SplineParameter );
+            xFit = linspace(min(x), max(x), 100);
+            yFit = feval(smoothingSpline, xFit);
+            if args.ShowFitCI
+                % Compute pointwise confidence intervals using bootstrap
+                nBoots = 500;
+                yBoots = bootstrp(nBoots, @(x,y) feval(fit(x, y, 'smoothingspline', ...
+                                                       SmoothingParam = args.SplineParameter), xFit), x, y);
+                yFitCI = prctile(yBoots, [2.5 97.5], 2);
+            else
+                yFitCI = [];
+            end
+
+        case {'lowess', 'loess'}
+            % Fit the smooth curve to the original data
+            yFit = smooth(x, y, args.FitType);
+            xFit = x;
+            
+            if args.ShowFitCI
+                % Compute pointwise confidence intervals using bootstrap
+                nBoots = 500;
+                yBoots = bootstrp(nBoots, @(x,y) smooth(x, y, args.FitType), x, y);
+                yFitCI = prctile(yBoots, [2.5 97.5], 2);
+            else
+                yFitCI = [];
+            end
+
+        case 'gpr'
+            gpr = fitrgp(x, y, BasisFunction=args.GPBasisFunction);
+            xFit = linspace(min(x), max(x), 100)';
+            [yFit, ~, yFitCI] = predict(gpr, xFit);
+
+    end
 end

@@ -23,6 +23,9 @@ function fig = plotModelPerformance( report, ...
         args.GPBasisFunction char ...
             {mustBeMember(args.GPBasisFunction, ...
                 {'none', 'constant', 'linear', 'pureQuadratic'})} = 'none'
+        args.GPKernelFunction char ...
+            {mustBeMember(args.GPKernelFunction, ...
+                {'exponential', 'squaredexponential', 'matern32', 'matern52'})} = 'squaredexponential'        
         args.FitCoefBounds  double
         args.ShowFitCI      logical = false
         args.FitLogLog      logical = false
@@ -41,7 +44,7 @@ function fig = plotModelPerformance( report, ...
     % create the figure and layout
     fig = figure;
     fontname( fig, 'Arial' );
-    fig.Position(3) = 300*numEncodings + 100;
+    fig.Position(3) = 350*numEncodings + 100;
     fig.Position(4) = 250*numDatasets + 100;
     layout = tiledlayout( numDatasets, numEncodings, TileSpacing='compact' );
     colours = lines(numModelTypes);
@@ -56,7 +59,7 @@ function fig = plotModelPerformance( report, ...
     else
         y = report.([args.Set 'Results']).Mean.(metric);
         err{1} = repmat( report.([args.Set 'Results']).SD.(metric), 2 , 1);
-        err{2} = err{1};
+        err{2} = -err{1};
     end
 
     % also gather every single result
@@ -67,7 +70,7 @@ function fig = plotModelPerformance( report, ...
     yAll = cat( 5, yAll{:} );
 
     % define extreme points
-    extreme = @(y) (abs(y)>1E3) | (abs(y)<1E-2) | (abs(y-median(y))>5*iqr(y));
+    extreme = @(z) (abs(z)>1E3) | (abs(z-median(y, 'all', 'omitnan'))>5*iqr(y, 'all'));
 
     % extract the names for labels
     encodingNames = report.GridSearch{1};
@@ -266,7 +269,10 @@ function [xFit, yFit, yFitCI] = fitNonparametricCurve(x, y, args)
             end
 
         case 'gpr'
-            gpr = fitrgp(x, y, BasisFunction=args.GPBasisFunction);
+            gpr = fitrgp(x, y, ...
+                         BasisFunction=args.GPBasisFunction, ...
+                         KernelFunction = args.GPKernelFunction, ...
+                         ConstantSigma=true);
             xFit = linspace(min(x), max(x), 100)';
             [yFit, ~, yFitCI] = predict(gpr, xFit);
 

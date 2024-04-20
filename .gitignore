@@ -1,6 +1,9 @@
 *.icloud
 *.asv
+*.prj
+*.pdf
 data/*.mat
 data/*.zip
 results/*
+code/resources/*
 

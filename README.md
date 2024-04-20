@@ -37,9 +37,9 @@ The follow analysis scripts carry out the investigation reported in the paper.
 
 Grid searches are carried out using the following class structure.
 
-- [Investigation](code/@Investigation/Investigation.m) class carries out the grid search for the data and model hyperparameters specified over the values specified for each. At each grid point, it creates an [Evaluation](code/@Evaluation/Evaluation.m) class object to perform the evaluation. Optionally, the [ParallelInvestigation](code/@ParallelInvestigation/ParallelInvestigation.m) class runs evaluations in parallel.
+- [Investigation](code/@Investigation) class carries out the grid search for the data and model hyperparameters specified over the values specified for each. At each grid point, it creates an [ModelEvaluation](code/@ModelEvaluation) class object to perform the evaluation. Optionally, the [ParallelInvestigation](code/@ParallelInvestigation) class runs evaluations in parallel.
 
-- [Evaluation](code/@Evaluation/Evaluation.m) class executes the k-fold cross-validation, creating the [ModelDataset](code/@ModelDataset/ModelDataset.m), partitioning it, fitting the model to the training set and then evaluating the trained model on the training and validation sets.
+- [Evaluation](code/@ModelEvaluation) class executes the k-fold cross-validation, creating the [ModelDataset](code/ModelDataset.m), partitioning it, fitting the model to the training set and then evaluating the trained model on the training and validation sets.
 
 - [ModelDataset](code/ModelDataset.m) class defines the common data processing methods and properties for the two datasets in the paper, which are themselves defined as subclasses, [SmartphoneDataset](code/SmartphoneDataset.m) and [AccelerometerDataset](code/AccelerometerDataset.m). 
 
@@ -49,6 +49,11 @@ Grid searches are carried out using the following class structure.
 
 ## Data
 
-The data files will soon be made available for download at Zenodo.
+The data files are available from Zenodo:
+
+[https://zenodo.org/records/10975077](https://zenodo.org/records/10975077)
+
+Create a new folder called `data` at the same level as the `code` folder. 
+
 
 

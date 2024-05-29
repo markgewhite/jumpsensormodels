@@ -50,7 +50,7 @@ classdef JumpModel < handle
                 args.ContinuousEncodingArgs struct
                 args.ModelType              string ...
                     {mustBeMember( args.ModelType, ...
-                            {'Linear', 'Ridge', 'Lasso', 'LassoSelect', ...
+                            {'Linear', 'Ridge', 'Lasso', 'ElasticNet', 'LassoSelect', ...
                              'LinearOpt', 'SVM', 'XGBoost'})} = 'Linear'
                 args.ModelArgs              struct
                 args.Optimize               logical = true
@@ -185,6 +185,12 @@ classdef JumpModel < handle
                     modelFcn = @(data, args) fitrlinear( data(:,1:end-1), data(:,end), args{:} );
                     self.ModelArgs.Regularization = 'lasso';
 
+                case 'ElasticNet'
+                    modelFcn = @(data, args) LassoModel( data(:,1:end-1), data(:,end), args{:} );
+                    if ~isfield(self.ModelArgs, 'Alpha')
+                        self.ModelArgs.Alpha = 0.5; % Set the default alpha value (0.5 for equal Lasso and Ridge)
+                    end
+
                 case 'LassoSelect'
                     modelFcn = @(data, args) fitrlinear( data(:,1:end-1), data(:,end), args{:} );
                     self.ModelArgs.Regularization = 'lasso';
@@ -207,7 +213,7 @@ classdef JumpModel < handle
 
             end
 
-            if self.Optimize && self.ModelType~="Linear"
+            if self.Optimize && self.ModelType~="Linear" && self.ModelType~="ElasticNet"
                 self.ModelArgs.OptimizeHyperparameters = 'auto';
                 self.ModelArgs.HyperparameterOptimizationOptions.Kfold = 2;
                 self.ModelArgs.HyperparameterOptimizationOptions.Repartition = true;
@@ -399,6 +405,16 @@ classdef JumpModel < handle
                         for i = 1:length(self.Model.Beta)
                             eval.(['Beta' num2str(i)]) = self.Model.Beta(i);
                         end
+
+                    case 'ElasticNet'
+                        % record the hyperparameters
+                        eval.ElasticNetAlpha = self.ModelArgs.Alpha;
+                        eval.ElasticNetLambda = self.Model.Lambda;
+                    
+                        % record the shrunk beta coefficients
+                        for i = 1:length(self.Model.Beta)
+                            eval.(['Beta' num2str(i)]) = self.Model.Beta(i);
+                        end
                 
                     case 'SVM'
 
@@ -425,16 +441,17 @@ classdef JumpModel < handle
 end
 
 
-function [lambda, selection] = getLassoLambda( X, y, p )
+function [lambda, selection] = getLassoLambda( X, y, p, alpha )
     % Determine lambda required to obtain specified number of predictors
     arguments
         X           double
         y           double
         p           double {mustBeInteger, mustBePositive}
+        alpha       double {mustBeInRange(alpha, 0, 1)} = 1 % Default to Lasso
     end
 
     % Fit lasso model with a wide range of lambda values
-    [B, fitInfo] = lasso(X, y, NumLambda = 100);
+    [B, fitInfo] = lasso(X, y, Alpha=alpha, NumLambda=100);
 
     % find the index of the lambda value that gives the desired number of predictors
     lambdaIdx = find(fitInfo.DF==p, 1);

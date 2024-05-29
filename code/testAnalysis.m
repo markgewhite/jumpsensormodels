@@ -2,7 +2,7 @@
 
 clear;
 
-testIndices = 12;
+testIndices = 3;
 catchErrors = false;
 
 % -- data setup --
@@ -80,14 +80,14 @@ for i = testIndices
             setup.model.args.EncodingType = 'Continuous';
             setup.model.args.ContinuousEncodingArgs.AlignmentMethod = 'LMTakeoffPeak';
 
-            setup.eval.KFoldRepeats = 25;
+            setup.eval.KFoldRepeats = 2;
 
             parameters = [ "data.class", ...
                            "model.args.EncodingType", ...
                            "model.args.ModelType"];
             values = { {@SmartphoneDataset, @AccelerometerDataset}, ...
                        {'Discrete', 'Continuous'}, ...
-                       {'Linear', 'Ridge', 'Lasso', 'SVM', 'XGBoost'} };
+                       {'Linear', 'Ridge', 'ElasticNet', 'Lasso', 'SVM', 'XGBoost'} };
             
             myInvestigation{i} = ParallelInvestigation( name, path, parameters, values, setup, catchErrors );
             

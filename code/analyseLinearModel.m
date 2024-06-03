@@ -24,7 +24,7 @@ values = {{'Discrete', 'Continuous'}, ...
           {'LMTakeoffPeak', 'XCMeanConv'}, ...
           {@SmartphoneDataset, @AccelerometerDataset}};
 
-myInvestigation = Investigation( 'LinearModel', path, parameters, values, setup );
+myInvestigation = Investigation( 'LinearModel2', path, parameters, values, setup );
 
 myInvestigation.run;
 
@@ -35,17 +35,17 @@ exportTableToLatex( results, fullfile(path, 'LinearModelStats') );
 
 %% create box plots for the beta coefficients
 titles = ["Smartphone (Discrete)", "Smartphone (Continuous - LMTakeoffPeak)",  ...
-          "Smartphone (Discrete)", "Smartphone (Continuous - XCMeanConv)", ...
+          "Smartphone (Continuous - XCMeanConv)", ...
           "Accelerometer (Discrete)", "Accelerometer (Continuous - LMTakeoffPeak)", ...
-          "Accelerometer (Discrete)", "Accelerometer (Continuous - XCMeanConv)" ];
-titles = reshape( titles, 2, 2, 2 );
+          "Accelerometer (Continuous - XCMeanConv)" ];
 
 fig1 = figure;
 fontname( fig1, 'Arial' );
 fig1.Position(3) = 1200;
-fig1.Position(4) = 1100;
-layout = tiledlayout(fig1, 4, 3, TileSpacing='loose' );
+fig1.Position(4) = 550;
+layout = tiledlayout(fig1, 2, 4, TileSpacing='loose' );
 colours = lines(2);
+m = 0;
 
 for k = 1:2 % dataset
     for j = 1:2 % alignment
@@ -54,30 +54,32 @@ for k = 1:2 % dataset
             thisEvaluation = myInvestigation.Evaluations{i,j,k};
         
             % compile the list of predictors (field names have beta prefix)
-            varNames = ["Intercept", thisEvaluation.Models{1}.PredictorNames];
+            varNames = ["Intercept", thisEvaluation.Models{1}.EncodingStrategy.Names];
             fldNames = arrayfun( @(name) strcat("Beta", name), varNames );
         
             values = thisEvaluation.getResultArray(fldNames);
             varNames(1) = "Int.";
         
-            % create the box plot
-            ax = nexttile(layout);
-        
-            if i==2
-                % continuous plot - short scale
-                makeBoxPlot( ax, values, varNames, colours(2,:), titles(i,j,k) );
-                ylim( ax, [-1 1] );
-        
+            if i==1 
+                if j==1 % do not repeat for j==2
+                    % discrete - one plot with wide scale, one with short scale
+                    ax = nexttile(layout);
+                    m = m+1;
+                    makeBoxPlot( ax, values, varNames, colours(1,:), ...
+                                 strcat( titles(m), " - Widescale") );
+                    ylim( ax, [-10 10] );
+            
+                    % generate another
+                    ax = nexttile(layout);
+                    makeBoxPlot( ax, values, varNames, colours(1,:), ...
+                                 strcat( titles(m), " - Narrow scale") );
+                    ylim( ax, [-1 1] );
+                end
             else
-                % discrete - one plot with wide scale, one with short scale
-                makeBoxPlot( ax, values, varNames, colours(1,:), ...
-                             strcat( titles(i), " - Widescale") );
-                ylim( ax, [-10 10] );
-        
-                % generate another
+                % continuous plot - short scale
                 ax = nexttile(layout);
-                makeBoxPlot( ax, values, varNames, colours(1,:), ...
-                             strcat( titles(i), " - Narrow scale") );
+                m = m+1;
+                makeBoxPlot( ax, values, varNames, colours(2,:), titles(m) );
                 ylim( ax, [-1 1] );
         
             end
